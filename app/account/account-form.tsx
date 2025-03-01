@@ -1,15 +1,23 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-'use client'
-import { useCallback, useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
-import { type User } from '@supabase/supabase-js'
-import Avatar from './avatar'
+"use client"
 
-// ...
+import { useCallback, useEffect, useState } from "react"
+import { createClient } from "@/utils/supabase/client"
+import type { User } from "@supabase/supabase-js"
+import { toast } from "sonner"
+import Avatar from "./avatar"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PageHeader } from "@/components/layout/page-header"
+import { Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 export default function AccountForm({ user }: { user: User | null }) {
   const supabase = createClient()
+  const router = useRouter()
   const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
   const [fullname, setFullname] = useState<string | null>(null)
   const [username, setUsername] = useState<string | null>(null)
   const [website, setWebsite] = useState<string | null>(null)
@@ -20,15 +28,15 @@ export default function AccountForm({ user }: { user: User | null }) {
       setLoading(true)
 
       const { data, error, status } = await supabase
-        .from('profiles')
+        .from("profiles")
         .select(`full_name, username, website, avatar_url`)
-        .eq('id', user?.id)
+        .eq("id", user?.id)
         .single()
 
-      if (error && status !== 406) {
-        console.log(error)
-        throw error
-      }
+        if (error && status !== 406) {
+          console.log(error)
+          throw error
+        }
 
       if (data) {
         setFullname(data.full_name)
@@ -37,7 +45,7 @@ export default function AccountForm({ user }: { user: User | null }) {
         setAvatarUrl(data.avatar_url)
       }
     } catch (error) {
-      alert('Error loading user data!')
+      toast.error("Failed to load profile data")
     } finally {
       setLoading(false)
     }
@@ -45,22 +53,13 @@ export default function AccountForm({ user }: { user: User | null }) {
 
   useEffect(() => {
     getProfile()
-  }, [user, getProfile])
+  }, [getProfile])
 
-  async function updateProfile({
-    username,
-    website,
-    avatar_url,
-  }: {
-    username: string | null
-    fullname: string | null
-    website: string | null
-    avatar_url: string | null
-  }) {
+  async function updateProfile() {
     try {
-      setLoading(true)
+      setUpdating(true)
 
-      const { error } = await supabase.from('profiles').upsert({
+      const { error } = await supabase.from("profiles").upsert({
         id: user?.id as string,
         full_name: fullname,
         username,
@@ -68,78 +67,110 @@ export default function AccountForm({ user }: { user: User | null }) {
         avatar_url,
         updated_at: new Date().toISOString(),
       })
+
       if (error) throw error
-      alert('Profile updated!')
+
+      toast.success("Profile updated successfully")
     } catch (error) {
-      alert('Error updating the data!')
+      toast.error("Failed to update profile")
     } finally {
-      setLoading(false)
+      setUpdating(false)
     }
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut()
+    router.push("/login")
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
-    <div className="form-widget">
+    <div className="w-full">
+      <PageHeader title="Account Settings" description="Manage your profile information" showBackButton backUrl="/" />
 
-      {/* ... */}
-      <Avatar
-        uid={user?.id ?? null}
-        url={avatar_url}
-        size={150}
-        onUpload={(url) => {
-          setAvatarUrl(url)
-          updateProfile({ fullname, username, website, avatar_url: url })
-        }}
-      />
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>Update your account settings and profile information</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex justify-center">
+            <Avatar
+              uid={user?.id ?? null}
+              url={avatar_url}
+              size={150}
+              onUpload={(url) => {
+                setAvatarUrl(url)
+                toast.success("Avatar updated successfully")
+              }}
+            />
+          </div>
 
-      <div>
-        <label htmlFor="email">Email</label>
-        <input id="email" type="text" value={user?.email} disabled />
-      </div>
-      <div>
-        <label htmlFor="fullName">Full Name</label>
-        <input
-          id="fullName"
-          type="text"
-          value={fullname || ''}
-          onChange={(e) => setFullname(e.target.value)}
-        />
-      </div>
-      <div>
-        <label htmlFor="username">Username</label>
-        <input
-          id="username"
-          type="text"
-          value={username || ''}
-          onChange={(e) => setUsername(e.target.value)}
-        />
-      </div>
-      <div>
-        <label htmlFor="website">Website</label>
-        <input
-          id="website"
-          type="url"
-          value={website || ''}
-          onChange={(e) => setWebsite(e.target.value)}
-        />
-      </div>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" type="text" value={user?.email || ""} disabled />
+            </div>
 
-      <div>
-        <button
-          className="button primary block"
-          onClick={() => updateProfile({ fullname, username, website, avatar_url })}
-          disabled={loading}
-        >
-          {loading ? 'Loading ...' : 'Update'}
-        </button>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name</Label>
+              <Input
+                id="fullName"
+                type="text"
+                value={fullname || ""}
+                onChange={(e) => setFullname(e.target.value)}
+                placeholder="Enter your full name"
+              />
+            </div>
 
-      <div>
-        <form action="/auth/signout" method="post">
-          <button className="button block" type="submit">
-            Sign out
-          </button>
-        </form>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                type="text"
+                value={username || ""}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Choose a username"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="url"
+                value={website || ""}
+                onChange={(e) => setWebsite(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+          </div>
+        </CardContent>
+        <CardFooter className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:space-y-0">
+          <Button variant="default" onClick={updateProfile} disabled={updating} className="w-full sm:w-auto">
+            {updating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Profile"
+            )}
+          </Button>
+
+          <Button variant="destructive" onClick={handleSignOut} className="w-full sm:w-auto">
+            Sign Out
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   )
 }
+

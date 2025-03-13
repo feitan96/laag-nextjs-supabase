@@ -31,17 +31,36 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/app/context/auth-context"
-import { useAvatar } from "@/hooks/useAvatar" // Import the reusable hook
+import { useAvatar } from "@/hooks/useAvatar"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/utils/supabase/client"
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, profile, isLoading } = useAuth()
-  const avatarUrl = useAvatar(profile?.avatar_url || null) // Use the hook to handle the avatar URL
+  const avatarUrl = useAvatar(profile?.avatar_url || null) 
+  const router = useRouter()
+  const supabase = createClient()
 
   if (isLoading) {
     return <div>Loading...</div>
   }
 
+    const handleAccountClick = () => {
+      router.push("/account")
+    }
+  
+    const handleLogout = async () => {
+      try {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+          throw error
+        }
+        router.push("/login")
+      } catch (error) {
+        console.error("Error signing out:", error)
+      }
+    }
   console.log("Profile data:", profile)
   console.log("Avatar URL:", profile?.avatar_url)
 
@@ -56,7 +75,7 @@ export function NavUser() {
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={avatarUrl || ""} // Use the avatarUrl from the hook
+                  src={avatarUrl || undefined}
                   alt={profile?.username || "User"}
                 />
                 <AvatarFallback className="rounded-lg">
@@ -80,7 +99,7 @@ export function NavUser() {
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={avatarUrl || ""} // Use the avatarUrl from the hook
+                    src={avatarUrl || undefined}
                     alt={profile?.username || "User"}
                   />
                   <AvatarFallback className="rounded-lg">
@@ -102,7 +121,7 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={handleAccountClick}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
@@ -116,7 +135,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
             </DropdownMenuItem>

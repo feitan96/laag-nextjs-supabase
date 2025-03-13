@@ -4,6 +4,7 @@
 import * as React from "react"
 import {
   AudioWaveform,
+  Baby,
   BookOpen,
   Bot,
   Command,
@@ -13,6 +14,7 @@ import {
   PieChart,
   Settings2,
   SquareTerminal,
+  UsersRound,
 } from "lucide-react"
 
 import { NavMain } from "@/components/nav-main"
@@ -31,12 +33,12 @@ import {
 const data = {
   teams: [
     {
-      name: "Acme Inc",
+      name: "Laag",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },
     {
-      name: "Acme Corp.",
+      name: "Laags",
       logo: AudioWaveform,
       plan: "Startup",
     },
@@ -135,9 +137,9 @@ const data = {
   ],
   projects: [
     {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
+      name: "Groups",
+      url: "/user/groups",
+      icon: UsersRound,
     },
     {
       name: "Sales & Marketing",

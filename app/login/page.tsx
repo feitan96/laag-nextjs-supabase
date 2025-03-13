@@ -33,10 +33,10 @@ export default function LoginPage() {
 
   return (
     <div className="flex flex-col items-center w-full">
-      <PageHeader
+      {/* <PageHeader
         title={authMode === "signin" ? "Sign In" : "Sign Up"}
         description={authMode === "signin" ? "Welcome back" : "Create your account"}
-      />
+      /> */}
       <div className="w-full max-w-md mt-8">
         <AuthForm
           mode={authMode}

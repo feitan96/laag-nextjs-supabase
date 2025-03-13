@@ -1,3 +1,4 @@
+// app/account/avatar.tsx
 "use client"
 
 import type React from "react"
@@ -18,8 +19,7 @@ interface AvatarProps {
   onUpload: (url: string) => void
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export default function Avatar({ uid, url, size, onUpload }: AvatarProps) {
+export default function Avatar({ uid, url, onUpload }: AvatarProps) {
   const supabase = createClient()
   const [avatarUrl, setAvatarUrl] = useState<string | null>(url)
   const [uploading, setUploading] = useState(false)
@@ -101,4 +101,3 @@ export default function Avatar({ uid, url, size, onUpload }: AvatarProps) {
     </div>
   )
 }
-

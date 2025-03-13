@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme/theme-provider"
 import { Toaster } from "sonner"
 import "./globals.css"
+import { AuthProvider } from "./context/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -13,11 +14,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} flex min-h-screen flex-col items-center justify-center`}>
+      <body className={`${inter.className} flex min-h-screen flex-col`}>
+        <AuthProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <main className="w-full max-w-2xl px-4 py-10">{children}</main>
+          <main className="w-full px-4">{children}</main>
           <Toaster />
         </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )

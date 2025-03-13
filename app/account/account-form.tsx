@@ -1,8 +1,8 @@
+// app/account/account-form.tsx
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import type { User } from "@supabase/supabase-js"
 import { toast } from "sonner"
 import Avatar from "./avatar"
 import { Button } from "@/components/ui/button"
@@ -12,10 +12,12 @@ import { Label } from "@/components/ui/label"
 import { PageHeader } from "@/components/layout/page-header"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useAuth } from "../context/auth-context"
 
-export default function AccountForm({ user }: { user: User | null }) {
+export default function AccountForm() {
   const supabase = createClient()
   const router = useRouter()
+  const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [fullname, setFullname] = useState<string | null>(null)
@@ -93,7 +95,7 @@ export default function AccountForm({ user }: { user: User | null }) {
 
   return (
     <div className="w-full">
-      <PageHeader title="Account Settings" description="Manage your profile information" showBackButton backUrl="/" />
+      <PageHeader title="Account Settings" description="Manage your profile information" showBackButton backUrl="/dashboard" />
 
       <Card className="mt-8">
         <CardHeader>
@@ -173,4 +175,3 @@ export default function AccountForm({ user }: { user: User | null }) {
     </div>
   )
 }
-

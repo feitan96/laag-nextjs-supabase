@@ -1,9 +1,7 @@
 // app/account/avatar.tsx
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -11,6 +9,7 @@ import { Avatar as AvatarUI, AvatarFallback, AvatarImage } from "@/components/ui
 import { Label } from "@/components/ui/label"
 import { Upload, User } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { useAvatar } from "@/hooks/useAvatar" // Import the reusable hook
 
 interface AvatarProps {
   uid: string | null
@@ -21,26 +20,8 @@ interface AvatarProps {
 
 export default function Avatar({ uid, url, onUpload }: AvatarProps) {
   const supabase = createClient()
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(url)
   const [uploading, setUploading] = useState(false)
-
-  useEffect(() => {
-    async function downloadImage(path: string) {
-      try {
-        const { data, error } = await supabase.storage.from("avatars").download(path)
-        if (error) {
-          throw error
-        }
-
-        const url = URL.createObjectURL(data)
-        setAvatarUrl(url)
-      } catch (error) {
-        console.log("Error downloading image: ", error)
-      }
-    }
-
-    if (url) downloadImage(url)
-  }, [url, supabase])
+  const avatarUrl = useAvatar(url) // Use the hook to handle the avatar URL
 
   const uploadAvatar: React.ChangeEventHandler<HTMLInputElement> = async (event) => {
     try {

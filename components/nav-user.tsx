@@ -31,17 +31,19 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/app/context/auth-context"
+import { useAvatar } from "@/hooks/useAvatar" // Import the reusable hook
 
 export function NavUser() {
   const { isMobile } = useSidebar()
   const { user, profile, isLoading } = useAuth()
+  const avatarUrl = useAvatar(profile?.avatar_url || null) // Use the hook to handle the avatar URL
 
   if (isLoading) {
     return <div>Loading...</div>
   }
 
   console.log("Profile data:", profile)
-console.log("Avatar URL:", profile?.avatar_url)
+  console.log("Avatar URL:", profile?.avatar_url)
 
   return (
     <SidebarMenu>
@@ -54,7 +56,7 @@ console.log("Avatar URL:", profile?.avatar_url)
             >
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
-                  src={profile?.avatar_url || ""}
+                  src={avatarUrl || ""} // Use the avatarUrl from the hook
                   alt={profile?.username || "User"}
                 />
                 <AvatarFallback className="rounded-lg">
@@ -78,7 +80,7 @@ console.log("Avatar URL:", profile?.avatar_url)
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
-                    src={profile?.avatar_url || ""}
+                    src={avatarUrl || ""} // Use the avatarUrl from the hook
                     alt={profile?.username || "User"}
                   />
                   <AvatarFallback className="rounded-lg">

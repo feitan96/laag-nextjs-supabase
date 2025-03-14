@@ -61,8 +61,9 @@ export function NavUser() {
         console.error("Error signing out:", error)
       }
     }
-  console.log("Profile data:", profile)
-  console.log("Avatar URL:", profile?.avatar_url)
+    
+  // console.log("Profile data:", profile)
+  // console.log("Avatar URL:", profile?.avatar_url)
 
   return (
     <SidebarMenu>

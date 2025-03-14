@@ -14,7 +14,7 @@ export default function GroupsPage() {
           <div className="flex flex-1 items-center justify-between">
             <h1 className="text-xl font-semibold">Groups</h1>
             <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4" />
               New Group
             </Button>
           </div>

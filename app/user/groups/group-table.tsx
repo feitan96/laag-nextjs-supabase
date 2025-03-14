@@ -17,16 +17,85 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MoreHorizontal, Search, Users } from "lucide-react"
 import { EmptyState } from "./empty-state"
+import { useGroupPicture } from "@/hooks/useGroupPicture"
+import Image from "next/image"
 
 interface Group {
   id: string
   group_name: string
   no_members: number
   created_at: string
+  group_picture?: string | null
   owner?: {
     id: string
     full_name: string
   }
+}
+
+// Function to format date
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
+}
+
+function GroupRow({ group }: { group: Group }) {
+  const groupPictureUrl = useGroupPicture(group.group_picture || null)
+
+  return (
+    <TableRow key={group.id}>
+      <TableCell className="font-medium">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            {groupPictureUrl ? (
+              <Image
+                src={groupPictureUrl}
+                alt={group.group_name}
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-full object-cover"
+                onError={(e) => {
+                  // Fallback if the image fails to load
+                  e.currentTarget.src = "/default-group-picture.png" // Add a default image in your public folder
+                }}
+              />
+            ) : (
+              <Users className="h-4 w-4" /> // Fallback icon if no group picture is available
+            )}
+          </div>
+          {group.group_name}
+        </div>
+      </TableCell>
+      <TableCell>
+        <Badge variant="secondary">{group.no_members} members</Badge>
+      </TableCell>
+      <TableCell>
+        {group.owner?.full_name || "Unknown"} {/* Handle undefined owner */}
+      </TableCell>
+      <TableCell>{formatDate(group.created_at)}</TableCell>
+      <TableCell className="text-right">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <MoreHorizontal className="h-4 w-4" />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem>View details</DropdownMenuItem>
+            <DropdownMenuItem>Edit group</DropdownMenuItem>
+            <DropdownMenuItem>Manage members</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-destructive">Delete group</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </TableCell>
+    </TableRow>
+  )
 }
 
 export function GroupTable() {
@@ -46,6 +115,7 @@ export function GroupTable() {
             group_name,
             no_members,
             created_at,
+            group_picture,
             owner:profiles!owner(id, full_name)
           `)
 
@@ -76,15 +146,6 @@ export function GroupTable() {
   const filteredGroups = groups.filter((group) =>
     group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  // Function to format date
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  }
 
   if (loading) {
     return (
@@ -174,42 +235,7 @@ export function GroupTable() {
             </TableRow>
           ) : (
             filteredGroups.map((group) => (
-              <TableRow key={group.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                      <Users className="h-4 w-4" />
-                    </div>
-                    {group.group_name}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge variant="secondary">{group.no_members} members</Badge>
-                </TableCell>
-                <TableCell>
-                  {group.owner?.full_name || "Unknown"} {/* Handle undefined owner */}
-                </TableCell>
-                <TableCell>{formatDate(group.created_at)}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>View details</DropdownMenuItem>
-                      <DropdownMenuItem>Edit group</DropdownMenuItem>
-                      <DropdownMenuItem>Manage members</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive">Delete group</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+              <GroupRow key={group.id} group={group} />
             ))
           )}
         </TableBody>

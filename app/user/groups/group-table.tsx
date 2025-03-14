@@ -19,10 +19,14 @@ import { MoreHorizontal, Search, Users } from "lucide-react"
 import { EmptyState } from "./empty-state"
 
 interface Group {
+  id: string
   group_name: string
-  id?: string
-  member_count?: number
-  created_at?: string
+  no_members: number
+  created_at: string
+  owner?: {
+    id: string
+    full_name: string
+  }
 }
 
 export function GroupTable() {
@@ -34,20 +38,30 @@ export function GroupTable() {
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        const { data, error } = await supabase.from("groups").select("*")
+        // Fetch groups and join with profiles to get owner's full_name
+        const { data, error } = await supabase
+          .from("groups")
+          .select(`
+            id,
+            group_name,
+            no_members,
+            created_at,
+            owner:profiles!owner(id, full_name)
+          `)
 
         if (error) {
           throw error
         }
 
-        // Transform data to include member count (in a real app, you might get this from the DB)
-        const groupsWithMeta =
-          data?.map((group) => ({
-            ...group,
-            member_count: Math.floor(Math.random() * 20) + 1, // Simulated member count
-          })) || []
+        console.log("Fetched groups:", data) // Log fetched data for debugging
 
-        setGroups(groupsWithMeta)
+        // Transform data to ensure `owner` is a single object or undefined
+        const transformedData = data?.map((group) => ({
+          ...group,
+          owner: group.owner, // No need to access [0] since the join returns a single object
+        })) || []
+
+        setGroups(transformedData)
       } catch (error) {
         console.error("Error fetching groups:", error)
       } finally {
@@ -59,11 +73,12 @@ export function GroupTable() {
   }, [supabase])
 
   // Filter groups based on search query
-  const filteredGroups = groups.filter((group) => group.group_name.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredGroups = groups.filter((group) =>
+    group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
 
   // Function to format date
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A"
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
@@ -83,6 +98,7 @@ export function GroupTable() {
             <TableRow>
               <TableHead className="w-[300px]">Group Name</TableHead>
               <TableHead>Members</TableHead>
+              <TableHead>Owner</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -98,6 +114,9 @@ export function GroupTable() {
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-6 w-[80px]" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-[120px]" />
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-6 w-[120px]" />
@@ -141,6 +160,7 @@ export function GroupTable() {
           <TableRow>
             <TableHead className="w-[300px]">Group Name</TableHead>
             <TableHead>Members</TableHead>
+            <TableHead>Owner</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -148,13 +168,13 @@ export function GroupTable() {
         <TableBody>
           {filteredGroups.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={5} className="h-24 text-center">
                 No groups found matching your search.
               </TableCell>
             </TableRow>
           ) : (
-            filteredGroups.map((group, index) => (
-              <TableRow key={index}>
+            filteredGroups.map((group) => (
+              <TableRow key={group.id}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -164,7 +184,10 @@ export function GroupTable() {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{group.member_count || 0} members</Badge>
+                  <Badge variant="secondary">{group.no_members} members</Badge>
+                </TableCell>
+                <TableCell>
+                  {group.owner?.full_name || "Unknown"} {/* Handle undefined owner */}
                 </TableCell>
                 <TableCell>{formatDate(group.created_at)}</TableCell>
                 <TableCell className="text-right">
@@ -203,4 +226,3 @@ export function GroupTable() {
     </div>
   )
 }
-

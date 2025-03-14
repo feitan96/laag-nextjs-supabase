@@ -1,3 +1,4 @@
+// components/group-table.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -15,10 +16,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MoreHorizontal, Search, Users } from "lucide-react"
+import { MoreHorizontal, Plus, Search, Users } from "lucide-react"
 import { EmptyState } from "./empty-state"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import Image from "next/image"
+import { toast } from "sonner"
+import { useAuth } from "@/app/context/auth-context"
+import { NewGroupForm } from "@/components/new-group-form"
 
 interface Group {
   id: string
@@ -32,12 +36,11 @@ interface Group {
   }
 }
 
-// Function to format date
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString("en-US", {
-    year: "numeric",
+const formatDate = (date: string) => {
+  return new Date(date).toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
+    year: "numeric",
   })
 }
 
@@ -57,12 +60,11 @@ function GroupRow({ group }: { group: Group }) {
                 height={32}
                 className="h-8 w-8 rounded-full object-cover"
                 onError={(e) => {
-                  // Fallback if the image fails to load
-                  e.currentTarget.src = "/default-group-picture.png" // Add a default image in your public folder
+                  e.currentTarget.src = "/default-group-picture.png"
                 }}
               />
             ) : (
-              <Users className="h-4 w-4" /> // Fallback icon if no group picture is available
+              <Users className="h-4 w-4" />
             )}
           </div>
           {group.group_name}
@@ -72,7 +74,7 @@ function GroupRow({ group }: { group: Group }) {
         <Badge variant="secondary">{group.no_members} members</Badge>
       </TableCell>
       <TableCell>
-        {group.owner?.full_name || "Unknown"} {/* Handle undefined owner */}
+        {group.owner?.full_name || "Unknown"}
       </TableCell>
       <TableCell>{formatDate(group.created_at)}</TableCell>
       <TableCell className="text-right">
@@ -102,12 +104,14 @@ export function GroupTable() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [showForm, setShowForm] = useState(false)
+  const [users, setUsers] = useState<{ id: string; full_name: string }[]>([])
   const supabase = createClient()
+  const { user } = useAuth()
 
   useEffect(() => {
     const fetchGroups = async () => {
       try {
-        // Fetch groups and join with profiles to get owner's full_name
         const { data, error } = await supabase
           .from("groups")
           .select(`
@@ -119,19 +123,8 @@ export function GroupTable() {
             owner:profiles!owner(id, full_name)
           `)
 
-        if (error) {
-          throw error
-        }
-
-        console.log("Fetched groups:", data) // Log fetched data for debugging
-
-        // Transform data to ensure `owner` is a single object or undefined
-        const transformedData = data?.map((group) => ({
-          ...group,
-          owner: group.owner, // No need to access [0] since the join returns a single object
-        })) || []
-
-        setGroups(transformedData)
+        if (error) throw error
+        setGroups(data || [])
       } catch (error) {
         console.error("Error fetching groups:", error)
       } finally {
@@ -139,10 +132,30 @@ export function GroupTable() {
       }
     }
 
-    fetchGroups()
-  }, [supabase])
+    const fetchUsers = async () => {
+      try {
+        let query = supabase
+          .from("profiles")
+          .select("id, full_name")
+    
+        // Only exclude the signed-in user if user?.id is valid
+        if (user?.id) {
+          query = query.neq("id", user.id)
+        }
+    
+        const { data, error } = await query
+    
+        if (error) throw error
+        setUsers(data || [])
+      } catch (error) {
+        console.error("Error fetching users:", error)
+      }
+    }
 
-  // Filter groups based on search query
+    fetchGroups()
+    fetchUsers()
+  }, [supabase, user])
+
   const filteredGroups = groups.filter((group) =>
     group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -213,8 +226,22 @@ export function GroupTable() {
           <Badge variant="outline" className="text-xs">
             {filteredGroups.length} groups
           </Badge>
+          <Button size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus className="mr-2 h-4 w-4" />
+            New Group
+          </Button>
         </div>
       </div>
+
+      {showForm && (
+        <NewGroupForm
+          users={users}
+          onSuccess={() => {
+            setShowForm(false)
+            // Optionally refetch groups here
+          }}
+        />
+      )}
 
       <Table>
         <TableHeader>

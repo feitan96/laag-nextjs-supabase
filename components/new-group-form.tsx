@@ -96,6 +96,7 @@ export function NewGroupForm({ users, onSuccess }: NewGroupFormProps) {
       toast.success("Group created successfully")
       onSuccess()
       form.reset()
+      window.location.reload()
     } catch (error) {
       console.error("Error creating group:", error)
       toast.error("Failed to create group")

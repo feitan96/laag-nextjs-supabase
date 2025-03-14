@@ -23,8 +23,9 @@ import Image from "next/image"
 import { toast } from "sonner"
 import { useAuth } from "@/app/context/auth-context"
 import { NewGroupForm } from "@/components/new-group-form"
+import { EditGroupModal } from "@/components/edit-group-modal"
 
-interface Group {
+export interface Group {
   id: string
   group_name: string
   no_members: number
@@ -34,6 +35,7 @@ interface Group {
     id: string
     full_name: string
   }
+  is_deleted: boolean
 }
 
 const formatDate = (date: string) => {
@@ -44,59 +46,102 @@ const formatDate = (date: string) => {
   })
 }
 
-function GroupRow({ group }: { group: Group }) {
+function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: string) => void }) {
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const groupPictureUrl = useGroupPicture(group.group_picture || null)
 
+  const supabase = createClient()
+
+  const handleEditGroup = async (groupId: string, newName: string) => {
+    try {
+      console.log("Attempting to update group with ID:", groupId)
+      console.log("New group name:", newName)
+
+      const { data, error } = await supabase
+        .from("groups")
+        .update({ group_name: newName })
+        .eq("id", groupId)
+        .select()
+
+      if (error) {
+        console.error("Error updating group:", error)
+        throw error
+      }
+
+      console.log("Group updated successfully. Updated data:", data)
+      toast.success("Group updated successfully")
+    } catch (error) {
+      console.error("Error updating group:", error)
+      toast.error("Failed to update group")
+    }
+  }
+
   return (
-    <TableRow key={group.id}>
-      <TableCell className="font-medium">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-            {groupPictureUrl ? (
-              <Image
-                src={groupPictureUrl}
-                alt={group.group_name}
-                width={32}
-                height={32}
-                className="h-8 w-8 rounded-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/default-group-picture.png"
-                }}
-              />
-            ) : (
-              <Users className="h-4 w-4" />
-            )}
+    <>
+      <TableRow key={group.id}>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+              {groupPictureUrl ? (
+                <Image
+                  src={groupPictureUrl}
+                  alt={group.group_name}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-group-picture.png"
+                  }}
+                />
+              ) : (
+                <Users className="h-4 w-4" />
+              )}
+            </div>
+            {group.group_name}
           </div>
-          {group.group_name}
-        </div>
-      </TableCell>
-      <TableCell>
-        <Badge variant="secondary">{group.no_members} members</Badge>
-      </TableCell>
-      <TableCell>
-        {group.owner?.full_name || "Unknown"}
-      </TableCell>
-      <TableCell>{formatDate(group.created_at)}</TableCell>
-      <TableCell className="text-right">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MoreHorizontal className="h-4 w-4" />
-              <span className="sr-only">Open menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>View details</DropdownMenuItem>
-            <DropdownMenuItem>Edit group</DropdownMenuItem>
-            <DropdownMenuItem>Manage members</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive">Delete group</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
+        </TableCell>
+        <TableCell>
+          <Badge variant="secondary">{group.no_members} members</Badge>
+        </TableCell>
+        <TableCell>
+          {group.owner?.full_name || "Unknown"}
+        </TableCell>
+        <TableCell>{formatDate(group.created_at)}</TableCell>
+        <TableCell className="text-right">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-4 w-4" />
+                <span className="sr-only">Open menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
+                Edit group
+              </DropdownMenuItem>
+              <DropdownMenuItem>Manage members</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => onDelete(group.id)}
+              >
+                Delete group
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </TableCell>
+      </TableRow>
+
+      <EditGroupModal
+        group={group}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleEditGroup}
+      />
+    </>
   )
 }
 
@@ -120,8 +165,10 @@ export function GroupTable() {
             no_members,
             created_at,
             group_picture,
+            is_deleted,
             owner:profiles!owner(id, full_name)
           `)
+          .eq("is_deleted", false) // Filter out deleted groups
 
         if (error) throw error
         setGroups(data || [])
@@ -134,17 +181,11 @@ export function GroupTable() {
 
     const fetchUsers = async () => {
       try {
-        let query = supabase
+        const { data, error } = await supabase
           .from("profiles")
           .select("id, full_name")
-    
-        // Only exclude the signed-in user if user?.id is valid
-        if (user?.id) {
-          query = query.neq("id", user.id)
-        }
-    
-        const { data, error } = await query
-    
+          .neq("id", user?.id || "") // Exclude the signed-in user
+
         if (error) throw error
         setUsers(data || [])
       } catch (error) {
@@ -155,6 +196,41 @@ export function GroupTable() {
     fetchGroups()
     fetchUsers()
   }, [supabase, user])
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      console.log("Attempting to delete group with ID:", groupId);
+  
+      // Log the current user (for debugging RLS policies)
+      console.log("Current user ID:", user?.id);
+  
+      // Log the group data before the update
+      const groupToDelete = groups.find((group) => group.id === groupId);
+      console.log("Group to delete:", groupToDelete);
+  
+      // Update the group's `is_deleted` field
+      const { data, error } = await supabase
+        .from("groups")
+        .update({ is_deleted: true })
+        .eq("id", groupId)
+        .select(); // Include this to return the updated row
+  
+      if (error) {
+        console.error("Error deleting group:", error);
+        throw error;
+      }
+  
+      // Log the updated group data
+      console.log("Group soft-deleted successfully. Updated data:", data);
+  
+      // Remove the deleted group from the local state
+      setGroups((prevGroups) => prevGroups.filter((group) => group.id !== groupId));
+      toast.success("Group deleted successfully");
+    } catch (error) {
+      console.error("Error deleting group:", error);
+      toast.error("Failed to delete group");
+    }
+  };
 
   const filteredGroups = groups.filter((group) =>
     group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -262,7 +338,11 @@ export function GroupTable() {
             </TableRow>
           ) : (
             filteredGroups.map((group) => (
-              <GroupRow key={group.id} group={group} />
+              <GroupRow
+                key={group.id}
+                group={group}
+                onDelete={handleDeleteGroup}
+              />
             ))
           )}
         </TableBody>

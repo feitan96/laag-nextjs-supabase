@@ -62,6 +62,7 @@ interface EditLaagDialogProps {
     when_start: string
     when_end: string
     fun_meter: number
+    updated_at: string
     laagImages: LaagImage[]
   }
   onLaagUpdated: () => void
@@ -149,6 +150,7 @@ export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
           when_start: values.when_start.toISOString(),
           when_end: values.when_end.toISOString(),
           fun_meter: parseFloat(values.fun_meter),
+          updated_at: new Date().toISOString(),
         })
         .eq("id", laag.id)
 

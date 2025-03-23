@@ -37,6 +37,11 @@ interface Laag {
     created_at: string
     is_deleted: boolean
   }[]
+  laagAttendees: {
+    id: string
+    attendee_id: string
+    is_removed: boolean
+  }[]
 }
 
 interface LaagCardProps {
@@ -45,6 +50,17 @@ interface LaagCardProps {
 
 interface LaagImageProps {
   imagePath: string
+}
+
+interface Member {
+  id: string
+  group_member: string
+  is_removed: boolean
+  profile: {
+    id: string
+    full_name: string
+    avatar_url?: string | null
+  }
 }
 
 function LaagImage({ imagePath }: LaagImageProps) {
@@ -71,7 +87,7 @@ function LaagImage({ imagePath }: LaagImageProps) {
   )
 }
 
-function LaagCard({ laag }: LaagCardProps) {
+function LaagCard({ laag, members }: LaagCardProps & { members: Member[] }) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
   const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
@@ -100,7 +116,7 @@ function LaagCard({ laag }: LaagCardProps) {
             </p>
           </div>
         </div>
-        {isOrganizer && <EditLaagDialog laag={laag} onLaagUpdated={() => window.location.reload()} />}
+        {isOrganizer && <EditLaagDialog laag={laag} members={members} onLaagUpdated={() => window.location.reload()} />}
       </div>
 
       {/* Content */}
@@ -153,60 +169,76 @@ interface LaagFeedProps {
 
 export function LaagFeed({ groupId }: LaagFeedProps) {
   const [laags, setLaags] = useState<Laag[]>([])
+  const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
-  const fetchLaags = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("laags")
-        .select(`
-          *,
-          organizer:profiles!organizer(id, full_name, avatar_url),
-          laagImages!laag_id(id, laag_id, image, created_at, is_deleted)
-        `)
-        .eq("group_id", groupId)
-        .eq("is_deleted", false)
-        .order("created_at", { ascending: false })
-
-      if (error) throw error
-      console.log("Fetched laags data:", data)
-
-      // Transform the data to ensure laagImages is always an array and filter out deleted images
-      const transformedData = data.map(laag => ({
-        ...laag,
-        laagImages: Array.isArray(laag.laagImages) 
-          ? laag.laagImages.filter((img: { is_deleted: boolean }) => !img.is_deleted)
-          : []
-      }))
-
-      setLaags(transformedData)
-    } catch (error) {
-      console.error("Error fetching laags:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
+    const fetchLaags = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("laags")
+          .select(`
+            *,
+            organizer:profiles!organizer(id, full_name, avatar_url),
+            laagImages(*),
+            laagAttendees(*)
+          `)
+          .eq("group_id", groupId)
+          .eq("is_deleted", false)
+          .order("created_at", { ascending: false })
+
+        if (error) throw error
+        setLaags(data)
+      } catch (error) {
+        console.error("Error fetching laags:", error)
+      }
+    }
+
+    const fetchMembers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("groupMembers")
+          .select(`
+            id,
+            group_member,
+            is_removed,
+            profile:profiles(id, full_name, avatar_url)
+          `)
+          .eq("group_id", groupId)
+          .eq("is_removed", false)
+
+        if (error) throw error
+
+        // Transform the data to ensure profile is a single object, not an array
+        const transformedData = (data || []).map(member => ({
+          ...member,
+          profile: Array.isArray(member.profile) ? member.profile[0] : member.profile
+        }))
+
+        setMembers(transformedData)
+      } catch (error) {
+        console.error("Error fetching members:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
     fetchLaags()
-  }, [groupId])
+    fetchMembers()
+  }, [groupId, supabase])
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="rounded-lg border p-4">
+          <div key={i} className="rounded-lg border bg-card p-4">
             <div className="flex items-center gap-4">
               <Skeleton className="h-10 w-10 rounded-full" />
               <div className="space-y-2">
                 <Skeleton className="h-4 w-[200px]" />
                 <Skeleton className="h-3 w-[150px]" />
               </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
             </div>
           </div>
         ))}
@@ -225,7 +257,7 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
   return (
     <div className="space-y-6">
       {laags.map((laag) => (
-        <LaagCard key={laag.id} laag={laag} />
+        <LaagCard key={laag.id} laag={laag} members={members} />
       ))}
     </div>
   )

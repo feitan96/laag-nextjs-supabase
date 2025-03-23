@@ -26,6 +26,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const formSchema = z.object({
   what: z.string().min(1, "What is required"),
@@ -38,17 +39,10 @@ const formSchema = z.object({
   when_end: z.date(),
   fun_meter: z.string().min(1, "Fun meter is required"),
   images: z.array(z.any()).optional(),
+  attendees: z.array(z.string()).min(1, "At least one attendee is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
-
-interface LaagImage {
-  id: string
-  laag_id: string
-  image: string
-  created_at: string
-  is_deleted: boolean
-}
 
 interface EditLaagDialogProps {
   laag: {
@@ -62,18 +56,43 @@ interface EditLaagDialogProps {
     when_start: string
     when_end: string
     fun_meter: number
-    updated_at: string
-    laagImages: LaagImage[]
+    organizer: {
+      id: string
+      full_name: string
+      avatar_url: string | null
+    }
+    laagAttendees: {
+      id: string
+      attendee_id: string
+      is_removed: boolean
+    }[]
+    laagImages: {
+      id: string
+      laag_id: string
+      image: string
+      created_at: string
+      is_deleted: boolean
+    }[]
   }
+  members: {
+    id: string
+    group_member: string
+    is_removed: boolean
+    profile: {
+      id: string
+      full_name: string
+      avatar_url?: string | null
+    }
+  }[]
   onLaagUpdated: () => void
 }
 
-export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
+export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [existingImages, setExistingImages] = useState<LaagImage[]>(laag.laagImages)
+  const [existingImages, setExistingImages] = useState((laag.laagImages || []).filter(img => !img.is_deleted))
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -89,6 +108,9 @@ export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
       when_end: new Date(laag.when_end),
       fun_meter: laag.fun_meter.toString(),
       images: [],
+      attendees: (laag.laagAttendees || [])
+        .filter(attendee => !attendee.is_removed)
+        .map(attendee => attendee.attendee_id),
     },
   })
 
@@ -133,10 +155,6 @@ export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
     setLoading(true)
 
     try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("No authenticated user")
-
       // Update the laag
       const { error: laagError } = await supabase
         .from("laags")
@@ -155,6 +173,48 @@ export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
         .eq("id", laag.id)
 
       if (laagError) throw laagError
+
+      // Get current attendees
+      const currentAttendees = laag.laagAttendees.filter(a => !a.is_removed)
+      const newAttendees = values.attendees
+
+      // Find attendees to remove
+      const attendeesToRemove = currentAttendees.filter(
+        attendee => !newAttendees.includes(attendee.attendee_id)
+      )
+
+      // Find attendees to add
+      const attendeesToAdd = newAttendees.filter(
+        attendeeId => !currentAttendees.some(a => a.attendee_id === attendeeId)
+      )
+
+      // Update removed attendees
+      if (attendeesToRemove.length > 0) {
+        const { error: removeError } = await supabase
+          .from("laagAttendees")
+          .update({ is_removed: true })
+          .in(
+            "id",
+            attendeesToRemove.map(a => a.id)
+          )
+
+        if (removeError) throw removeError
+      }
+
+      // Add new attendees
+      if (attendeesToAdd.length > 0) {
+        const { error: addError } = await supabase
+          .from("laagAttendees")
+          .insert(
+            attendeesToAdd.map(attendeeId => ({
+              laag_id: laag.id,
+              attendee_id: attendeeId,
+              is_removed: false
+            }))
+          )
+
+        if (addError) throw addError
+      }
 
       // Upload new images if any
       if (uploadedImages.length > 0) {
@@ -446,6 +506,39 @@ export function EditLaagDialog({ laag, onLaagUpdated }: EditLaagDialogProps) {
                     onChange={handleImageChange}
                   />
                 </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <FormLabel>Attendees</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                {members.map((member) => (
+                  <FormField
+                    key={member.profile.id}
+                    control={form.control}
+                    name="attendees"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value?.includes(member.profile.id)}
+                            onCheckedChange={(checked) => {
+                              const currentValue = field.value || []
+                              if (checked) {
+                                field.onChange([...currentValue, member.profile.id])
+                              } else {
+                                field.onChange(currentValue.filter(id => id !== member.profile.id))
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          {member.profile.full_name}
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                ))}
               </div>
             </div>
 

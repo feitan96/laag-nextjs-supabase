@@ -150,10 +150,10 @@ function LaagCard({ laag, members }: LaagCardProps & { members: Member[] }) {
       </div>
 
       {/* Images */}
-      {laag.laagImages && laag.laagImages.length > 0 && (
+      {laag.laagImages && laag.laagImages.filter(img => !img.is_deleted).length > 0 && (
         <div className="mt-4">
           <div className="grid grid-cols-2 gap-1">
-            {laag.laagImages.map((image) => (
+            {laag.laagImages.filter(img => !img.is_deleted).map((image) => (
               <LaagImage key={image.id} imagePath={image.image} />
             ))}
           </div>

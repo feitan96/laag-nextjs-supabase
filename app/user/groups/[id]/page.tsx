@@ -10,6 +10,8 @@ import { Users } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
+import { CreateLaagDialog } from "./create-laag-dialog"
+import { LaagFeed } from "./laag-feed"
 
 interface Group {
   id: string
@@ -187,6 +189,15 @@ export default function GroupFeed() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Laags Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Laags</h2>
+          <CreateLaagDialog groupId={group.id} onLaagCreated={() => window.location.reload()} />
+        </div>
+        <LaagFeed groupId={group.id} />
       </div>
     </div>
   )

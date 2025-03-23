@@ -28,6 +28,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Check, ChevronsUpDown, Loader2, Plus, Upload, User, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 
 // Define the form schema with Zod
 const formSchema = z.object({
@@ -225,9 +226,11 @@ export function NewGroupDialog() {
             <div className="flex flex-col items-center justify-center space-y-2">
               <div className="relative h-24 w-24 overflow-hidden rounded-full border-2 border-dashed border-gray-300 bg-gray-50 transition-all hover:border-gray-400">
                 {imagePreview ? (
-                  <img
-                    src={imagePreview || "/placeholder.svg"}
+                  <Image
+                    src={imagePreview}
                     alt="Group preview"
+                    width={96}
+                    height={96}
                     className="h-full w-full object-cover"
                   />
                 ) : (

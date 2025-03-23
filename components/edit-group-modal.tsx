@@ -1,51 +1,72 @@
 "use client"
 
 import { useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { toast } from "sonner"
-import { Group } from "@/app/user/groups/group-table"
+import { Label } from "@/components/ui/label"
+import type { Group } from "@/app/user/groups/group-table"
 
 interface EditGroupModalProps {
   group: Group
   isOpen: boolean
   onClose: () => void
-  onSave: (groupId: string, newName: string) => void
+  onSave: (groupId: string, newName: string) => Promise<void>
 }
 
 export function EditGroupModal({ group, isOpen, onClose, onSave }: EditGroupModalProps) {
   const [groupName, setGroupName] = useState(group.group_name)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSave = () => {
-    if (!groupName.trim()) {
-      toast.error("Group name cannot be empty")
-      return
+  const handleSave = async () => {
+    setIsLoading(true)
+    try {
+      await onSave(group.id, groupName)
+      onClose()
+    } catch (error) {
+      console.error("Error saving group:", error)
+    } finally {
+      setIsLoading(false)
     }
-    onSave(group.id, groupName)
-    onClose()
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Edit Group</DialogTitle>
+          <DialogDescription>Make changes to your group here. Click save when you&apos;re done.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-4">
-          <Input
-            value={groupName}
-            onChange={(e) => setGroupName(e.target.value)}
-            placeholder="Enter group name"
-          />
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="group-name" className="text-right">
+              Name
+            </Label>
+            <Input
+              id="group-name"
+              value={groupName}
+              onChange={(e) => setGroupName(e.target.value)}
+              className="col-span-3"
+            />
+          </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button type="button" onClick={handleSave} disabled={isLoading || !groupName.trim()}>
+            Save changes
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
 }
+

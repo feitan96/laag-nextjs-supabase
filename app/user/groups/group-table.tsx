@@ -1,4 +1,3 @@
-// components/group-table.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -16,14 +15,16 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MoreHorizontal, Plus, Search, Users } from "lucide-react"
+import { MoreHorizontal, Search, Users } from "lucide-react"
 import { EmptyState } from "./empty-state"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
+import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
 import { toast } from "sonner"
 import { useAuth } from "@/app/context/auth-context"
-import { NewGroupForm } from "@/components/new-group-form"
+import { NewGroupDialog } from "@/app/user/groups/new-group-dialog"
 import { EditGroupModal } from "@/components/edit-group-modal"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export interface Group {
   id: string
@@ -34,6 +35,7 @@ export interface Group {
   owner?: {
     id: string
     full_name: string
+    avatar_url?: string | null
   }
   is_deleted: boolean
 }
@@ -49,6 +51,7 @@ const formatDate = (date: string) => {
 function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: string) => void }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const groupPictureUrl = useGroupPicture(group.group_picture || null)
+  const ownerAvatarUrl = useAvatar(group.owner?.avatar_url || null)
 
   const supabase = createClient()
 
@@ -57,11 +60,7 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
       console.log("Attempting to update group with ID:", groupId)
       console.log("New group name:", newName)
 
-      const { data, error } = await supabase
-        .from("groups")
-        .update({ group_name: newName })
-        .eq("id", groupId)
-        .select()
+      const { data, error } = await supabase.from("groups").update({ group_name: newName }).eq("id", groupId).select()
 
       if (error) {
         console.error("Error updating group:", error)
@@ -84,7 +83,7 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               {groupPictureUrl ? (
                 <Image
-                  src={groupPictureUrl}
+                  src={groupPictureUrl || "/placeholder.svg"}
                   alt={group.group_name}
                   width={32}
                   height={32}
@@ -104,7 +103,13 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
           <Badge variant="secondary">{group.no_members} members</Badge>
         </TableCell>
         <TableCell>
-          {group.owner?.full_name || "Unknown"}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={ownerAvatarUrl || undefined} />
+              <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
+            </Avatar>
+            <span>{group.owner?.full_name || "Unknown"}</span>
+          </div>
         </TableCell>
         <TableCell>{formatDate(group.created_at)}</TableCell>
         <TableCell className="text-right">
@@ -119,15 +124,10 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>View details</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-                Edit group
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem>
               <DropdownMenuItem>Manage members</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => onDelete(group.id)}
-              >
+              <DropdownMenuItem className="text-destructive" onClick={() => onDelete(group.id)}>
                 Delete group
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -149,8 +149,7 @@ export function GroupTable() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [showForm, setShowForm] = useState(false)
-  const [users, setUsers] = useState<{ id: string; full_name: string }[]>([])
+  const [isNewGroupDialogOpen, setIsNewGroupDialogOpen] = useState(false)
   const supabase = createClient()
   const { user } = useAuth()
 
@@ -166,7 +165,7 @@ export function GroupTable() {
             created_at,
             group_picture,
             is_deleted,
-            owner:profiles!owner(id, full_name)
+            owner:profiles!owner(id, full_name, avatar_url)
           `)
           .eq("is_deleted", false) // Filter out deleted groups
 
@@ -179,62 +178,41 @@ export function GroupTable() {
       }
     }
 
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, full_name")
-          .neq("id", user?.id || "") // Exclude the signed-in user
-
-        if (error) throw error
-        setUsers(data || [])
-      } catch (error) {
-        console.error("Error fetching users:", error)
-      }
-    }
-
     fetchGroups()
-    fetchUsers()
-  }, [supabase, user])
+  }, [supabase])
 
   const handleDeleteGroup = async (groupId: string) => {
     try {
-      console.log("Attempting to delete group with ID:", groupId);
-  
-      // Log the current user (for debugging RLS policies)
-      console.log("Current user ID:", user?.id);
-  
-      // Log the group data before the update
-      const groupToDelete = groups.find((group) => group.id === groupId);
-      console.log("Group to delete:", groupToDelete);
-  
-      // Update the group's `is_deleted` field
-      const { data, error } = await supabase
-        .from("groups")
-        .update({ is_deleted: true })
-        .eq("id", groupId)
-        .select(); // Include this to return the updated row
-  
-      if (error) {
-        console.error("Error deleting group:", error);
-        throw error;
-      }
-  
-      // Log the updated group data
-      console.log("Group soft-deleted successfully. Updated data:", data);
-  
-      // Remove the deleted group from the local state
-      setGroups((prevGroups) => prevGroups.filter((group) => group.id !== groupId));
-      toast.success("Group deleted successfully");
-    } catch (error) {
-      console.error("Error deleting group:", error);
-      toast.error("Failed to delete group");
-    }
-  };
+      console.log("Attempting to delete group with ID:", groupId)
 
-  const filteredGroups = groups.filter((group) =>
-    group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+      // Log the current user (for debugging RLS policies)
+      console.log("Current user ID:", user?.id)
+
+      // Log the group data before the update
+      const groupToDelete = groups.find((group) => group.id === groupId)
+      console.log("Group to delete:", groupToDelete)
+
+      // Update the group's `is_deleted` field
+      const { data, error } = await supabase.from("groups").update({ is_deleted: true }).eq("id", groupId).select() // Include this to return the updated row
+
+      if (error) {
+        console.error("Error deleting group:", error)
+        throw error
+      }
+
+      // Log the updated group data
+      console.log("Group soft-deleted successfully. Updated data:", data)
+
+      // Remove the deleted group from the local state
+      setGroups((prevGroups) => prevGroups.filter((group) => group.id !== groupId))
+      toast.success("Group deleted successfully")
+    } catch (error) {
+      console.error("Error deleting group:", error)
+      toast.error("Failed to delete group")
+    }
+  }
+
+  const filteredGroups = groups.filter((group) => group.group_name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   if (loading) {
     return (
@@ -266,7 +244,10 @@ export function GroupTable() {
                   <Skeleton className="h-6 w-[80px]" />
                 </TableCell>
                 <TableCell>
-                  <Skeleton className="h-6 w-[120px]" />
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-6 w-[120px]" />
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Skeleton className="h-6 w-[120px]" />
@@ -302,22 +283,9 @@ export function GroupTable() {
           <Badge variant="outline" className="text-xs">
             {filteredGroups.length} groups
           </Badge>
-          <Button size="sm" onClick={() => setShowForm(!showForm)}>
-            <Plus className="mr-2 h-4 w-4" />
-            New Group
-          </Button>
+          <NewGroupDialog />
         </div>
       </div>
-
-      {showForm && (
-        <NewGroupForm
-          users={users}
-          onSuccess={() => {
-            setShowForm(false)
-            // Optionally refetch groups here
-          }}
-        />
-      )}
 
       <Table>
         <TableHeader>
@@ -337,13 +305,7 @@ export function GroupTable() {
               </TableCell>
             </TableRow>
           ) : (
-            filteredGroups.map((group) => (
-              <GroupRow
-                key={group.id}
-                group={group}
-                onDelete={handleDeleteGroup}
-              />
-            ))
+            filteredGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
           )}
         </TableBody>
       </Table>
@@ -359,3 +321,4 @@ export function GroupTable() {
     </div>
   )
 }
+

@@ -35,6 +35,21 @@ interface Group {
   is_deleted: boolean
 }
 
+interface MemberAvatarProps {
+  avatarUrl: string | null
+  fullName: string
+}
+
+function MemberAvatar({ avatarUrl, fullName }: MemberAvatarProps) {
+  const memberAvatarUrl = useAvatar(avatarUrl)
+  return (
+    <Avatar>
+      <AvatarImage src={memberAvatarUrl || undefined} />
+      <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
 export default function GroupFeed() {
   const params = useParams()
   const [group, setGroup] = useState<Group | null>(null)
@@ -73,7 +88,10 @@ export default function GroupFeed() {
         const transformedData = {
           ...data,
           owner: Array.isArray(data.owner) ? data.owner[0] : data.owner,
-          members: data.members || []
+          members: (data.members || []).map(member => ({
+            ...member,
+            profile: Array.isArray(member.profile) ? member.profile[0] : member.profile
+          }))
         }
 
         setGroup(transformedData)
@@ -114,7 +132,7 @@ export default function GroupFeed() {
       <div className="flex h-[50vh] items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-semibold">Group not found</h2>
-          <p className="text-muted-foreground">The group you're looking for doesn't exist or has been deleted.</p>
+          <p className="text-muted-foreground">The group you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
         </div>
       </div>
     )
@@ -161,10 +179,7 @@ export default function GroupFeed() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {group.members?.map((member) => (
             <div key={member.id} className="flex items-center gap-3 rounded-lg border p-3">
-              <Avatar>
-                <AvatarImage src={member.profile.avatar_url || undefined} />
-                <AvatarFallback>{member.profile.full_name.charAt(0)}</AvatarFallback>
-              </Avatar>
+              <MemberAvatar avatarUrl={member.profile.avatar_url || null} fullName={member.profile.full_name} />
               <div>
                 <p className="font-medium">{member.profile.full_name}</p>
                 <p className="text-sm text-muted-foreground">Member</p>

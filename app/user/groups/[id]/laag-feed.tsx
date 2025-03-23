@@ -9,6 +9,7 @@ import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
 import { format } from "date-fns"
+import { EditLaagDialog } from "./edit-laag-dialog"
 
 interface Laag {
   id: string
@@ -72,24 +73,34 @@ function LaagImage({ imagePath }: LaagImageProps) {
 
 function LaagCard({ laag }: LaagCardProps) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
+  const [isOrganizer, setIsOrganizer] = useState(false)
+  const supabase = createClient()
   
-  console.log("Laag card data:", laag)
-  console.log("Laag images:", laag.laagImages)
+  useEffect(() => {
+    const checkOrganizer = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsOrganizer(user?.id === laag.organizer.id)
+    }
+    checkOrganizer()
+  }, [laag.organizer.id, supabase])
   
   return (
     <div className="rounded-lg border bg-card">
       {/* Header */}
-      <div className="flex items-center gap-4 p-4">
-        <Avatar>
-          <AvatarImage src={organizerAvatarUrl || undefined} />
-          <AvatarFallback>{laag.organizer.full_name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div>
-          <p className="font-medium">{laag.organizer.full_name}</p>
-          <p className="text-sm text-muted-foreground">
-            {format(new Date(laag.created_at), "MMM d, yyyy 'at' h:mm a")}
-          </p>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-4">
+          <Avatar>
+            <AvatarImage src={organizerAvatarUrl || undefined} />
+            <AvatarFallback>{laag.organizer.full_name.charAt(0)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{laag.organizer.full_name}</p>
+            <p className="text-sm text-muted-foreground">
+              {format(new Date(laag.created_at), "MMM d, yyyy 'at' h:mm a")}
+            </p>
+          </div>
         </div>
+        {isOrganizer && <EditLaagDialog laag={laag} onLaagUpdated={() => window.location.reload()} />}
       </div>
 
       {/* Content */}

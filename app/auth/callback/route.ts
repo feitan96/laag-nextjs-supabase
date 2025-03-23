@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   }
 
   // Redirect to the dashboard after successful login
-  return NextResponse.redirect(new URL('/account', request.url), {
+  return NextResponse.redirect(new URL('/dashboard', request.url), {
     status: 302,
   })
 }

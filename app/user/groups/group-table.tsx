@@ -24,6 +24,7 @@ import { useAuth } from "@/app/context/auth-context"
 import { NewGroupDialog } from "@/app/user/groups/new-group-dialog"
 import { EditGroupModal } from "@/components/edit-group-modal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRouter } from "next/navigation"
 
 export interface Group {
   id: string
@@ -56,6 +57,7 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const groupPictureUrl = useGroupPicture(group.group_picture || null)
   const ownerAvatarUrl = useAvatar(group.owner?.avatar_url || null)
+  const router = useRouter()
 
   const supabase = createClient()
 
@@ -127,7 +129,9 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>
+                View group
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem>
               <DropdownMenuItem>Manage members</DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -155,6 +159,7 @@ export function GroupTable() {
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
   const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchGroups = async () => {

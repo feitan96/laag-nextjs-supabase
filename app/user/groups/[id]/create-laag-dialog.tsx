@@ -27,6 +27,7 @@ import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const formSchema = z.object({
   what: z.string().min(1, "What is required"),
@@ -39,6 +40,7 @@ const formSchema = z.object({
   when_end: z.date(),
   fun_meter: z.string().min(1, "Fun meter is required"),
   images: z.array(z.any()).optional(),
+  attendees: z.array(z.string()).min(1, "At least one attendee is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -46,9 +48,19 @@ type FormValues = z.infer<typeof formSchema>
 interface CreateLaagDialogProps {
   groupId: string
   onLaagCreated: () => void
+  members: {
+    id: string
+    group_member: string
+    is_removed: boolean
+    profile: {
+      id: string
+      full_name: string
+      avatar_url?: string | null
+    }
+  }[]
 }
 
-export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogProps) {
+export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaagDialogProps) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
@@ -66,6 +78,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogPro
       status: "",
       fun_meter: "",
       images: [],
+      attendees: members.map(member => member.profile.id),
     },
   })
 
@@ -117,6 +130,19 @@ export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogPro
       })
 
       if (laagError) throw laagError
+
+      // Create laag attendees
+      const { error: attendeesError } = await supabase
+        .from("laagAttendees")
+        .insert(
+          values.attendees.map(attendeeId => ({
+            laag_id: laagId,
+            attendee_id: attendeeId,
+            is_removed: false
+          }))
+        )
+
+      if (attendeesError) throw attendeesError
 
       // Then upload and insert images if any
       if (uploadedImages.length > 0) {
@@ -393,6 +419,39 @@ export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogPro
                     onChange={handleImageChange}
                   />
                 </label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <FormLabel>Attendees</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                {members.map((member) => (
+                  <FormField
+                    key={member.profile.id}
+                    control={form.control}
+                    name="attendees"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value?.includes(member.profile.id)}
+                            onCheckedChange={(checked) => {
+                              const currentValue = field.value || []
+                              if (checked) {
+                                field.onChange([...currentValue, member.profile.id])
+                              } else {
+                                field.onChange(currentValue.filter(id => id !== member.profile.id))
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          {member.profile.full_name}
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                ))}
               </div>
             </div>
 

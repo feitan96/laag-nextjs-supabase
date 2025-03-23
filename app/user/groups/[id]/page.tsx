@@ -195,7 +195,11 @@ export default function GroupFeed() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Laags</h2>
-          <CreateLaagDialog groupId={group.id} onLaagCreated={() => window.location.reload()} />
+          <CreateLaagDialog 
+            groupId={group.id} 
+            onLaagCreated={() => window.location.reload()} 
+            members={group.members || []}
+          />
         </div>
         <LaagFeed groupId={group.id} />
       </div>

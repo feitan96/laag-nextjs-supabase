@@ -99,40 +99,8 @@ export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogPro
       if (!user) throw new Error("No authenticated user")
 
       const laagId = uuidv4()
-      const imageUrls: string[] = []
 
-      // Upload images if any
-      if (uploadedImages.length > 0) {
-        for (const image of uploadedImages) {
-          const fileExt = image.name.split(".").pop()
-          const filePath = `${laagId}/${uuidv4()}.${fileExt}`
-
-          // Upload to storage bucket
-          const { error: uploadError } = await supabase.storage
-            .from("laags")
-            .upload(filePath, image)
-
-          if (uploadError) throw uploadError
-
-          // Get the public URL
-          const { data: { publicUrl } } = supabase.storage
-            .from("laags")
-            .getPublicUrl(filePath)
-
-          // Store in laagImages table
-          const { error: imageError } = await supabase
-            .from("laagImages")
-            .insert({
-              laag_id: laagId,
-              image: publicUrl
-            })
-
-          if (imageError) throw imageError
-          imageUrls.push(publicUrl)
-        }
-      }
-
-      // Create the laag
+      // Create the laag first
       const { error: laagError } = await supabase.from("laags").insert({
         id: laagId,
         what: values.what,
@@ -149,6 +117,31 @@ export function CreateLaagDialog({ groupId, onLaagCreated }: CreateLaagDialogPro
       })
 
       if (laagError) throw laagError
+
+      // Then upload and insert images if any
+      if (uploadedImages.length > 0) {
+        for (const image of uploadedImages) {
+          const fileExt = image.name.split(".").pop()
+          const filePath = `${laagId}/${uuidv4()}.${fileExt}`
+
+          // Upload to storage bucket
+          const { error: uploadError } = await supabase.storage
+            .from("laags")
+            .upload(filePath, image)
+
+          if (uploadError) throw uploadError
+
+          // Store in laagImages table
+          const { error: imageError } = await supabase
+            .from("laagImages")
+            .insert({
+              laag_id: laagId,
+              image: filePath
+            })
+
+          if (imageError) throw imageError
+        }
+      }
 
       toast.success("Laag created successfully")
       form.reset()

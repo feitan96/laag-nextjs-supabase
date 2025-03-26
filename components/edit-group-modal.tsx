@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { Group } from "@/app/user/groups/group-table"
+import type { Group } from "@/app/(authenticated)/user/groups/group-table"
 
 interface EditGroupModalProps {
   group: Group

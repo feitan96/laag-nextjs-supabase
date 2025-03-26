@@ -6,12 +6,17 @@ import { useParams } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Users } from "lucide-react"
+import { Users, Edit2, Settings } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
 import { CreateLaagDialog } from "./create-laag-dialog"
 import { LaagFeed } from "./laag-feed"
+import { EditGroupModal } from "@/components/edit-group-modal"
+import { ManageMembersDialog } from "./manage-members-dialog"
+import { Button } from "@/components/ui/button"
+import { useAuth } from "@/app/context/auth-context"
+import { toast } from "sonner"
 
 interface Group {
   id: string
@@ -56,56 +61,78 @@ export default function GroupFeed() {
   const params = useParams()
   const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isManageMembersOpen, setIsManageMembersOpen] = useState(false)
   const supabase = createClient()
+  const { user } = useAuth()
   const groupPictureUrl = useGroupPicture(group?.group_picture || null)
   const ownerAvatarUrl = useAvatar(group?.owner?.avatar_url || null)
 
-  useEffect(() => {
-    const fetchGroup = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("groups")
-          .select(`
+  const fetchGroup = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("groups")
+        .select(`
+          id,
+          group_name,
+          no_members,
+          created_at,
+          group_picture,
+          is_deleted,
+          owner:profiles!owner(id, full_name, avatar_url),
+          members:groupMembers(
             id,
-            group_name,
-            no_members,
-            created_at,
-            group_picture,
-            is_deleted,
-            owner:profiles!owner(id, full_name, avatar_url),
-            members:groupMembers(
-              id,
-              group_member,
-              is_removed,
-              profile:profiles(id, full_name, avatar_url)
-            )
-          `)
-          .eq("id", params.id)
-          .eq("is_deleted", false)
-          .single()
+            group_member,
+            is_removed,
+            profile:profiles(id, full_name, avatar_url)
+          )
+        `)
+        .eq("id", params.id)
+        .eq("is_deleted", false)
+        .single()
 
-        if (error) throw error
+      if (error) throw error
 
-        // Transform the data to match our Group interface
-        const transformedData = {
-          ...data,
-          owner: Array.isArray(data.owner) ? data.owner[0] : data.owner,
-          members: (data.members || []).map(member => ({
-            ...member,
-            profile: Array.isArray(member.profile) ? member.profile[0] : member.profile
-          }))
-        }
-
-        setGroup(transformedData)
-      } catch (error) {
-        console.error("Error fetching group:", error)
-      } finally {
-        setLoading(false)
+      // Transform the data to match our Group interface
+      const transformedData = {
+        ...data,
+        owner: Array.isArray(data.owner) ? data.owner[0] : data.owner,
+        members: (data.members || []).map(member => ({
+          ...member,
+          profile: Array.isArray(member.profile) ? member.profile[0] : member.profile
+        }))
       }
-    }
 
+      setGroup(transformedData)
+    } catch (error) {
+      console.error("Error fetching group:", error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     fetchGroup()
   }, [supabase, params.id])
+
+  const handleEditGroup = async (groupId: string, newName: string) => {
+    try {
+      const { error } = await supabase
+        .from("groups")
+        .update({ group_name: newName })
+        .eq("id", groupId)
+        .select()
+
+      if (error) throw error
+
+      toast.success("Group updated successfully")
+      fetchGroup()
+      setIsEditModalOpen(false)
+    } catch (error) {
+      console.error("Error updating group:", error)
+      toast.error("Failed to update group")
+    }
+  }
 
   if (loading) {
     return (
@@ -140,36 +167,52 @@ export default function GroupFeed() {
     )
   }
 
+  const isOwner = user?.id === group.owner?.id
+
   return (
     <div className="space-y-6 p-6">
       {/* Group Header */}
-      <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-          {groupPictureUrl ? (
-            <Image
-              src={groupPictureUrl}
-              alt={group.group_name}
-              width={64}
-              height={64}
-              className="h-16 w-16 rounded-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = "/default-group-picture.png"
-              }}
-            />
-          ) : (
-            <Users className="h-8 w-8" />
-          )}
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold">{group.group_name}</h1>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Avatar className="h-5 w-5">
-              <AvatarImage src={ownerAvatarUrl || undefined} />
-              <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
-            </Avatar>
-            <span>Created by {group.owner?.full_name}</span>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+            {groupPictureUrl ? (
+              <Image
+                src={groupPictureUrl}
+                alt={group.group_name}
+                width={64}
+                height={64}
+                className="h-16 w-16 rounded-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = "/default-group-picture.png"
+                }}
+              />
+            ) : (
+              <Users className="h-8 w-8" />
+            )}
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold">{group.group_name}</h1>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Avatar className="h-5 w-5">
+                <AvatarImage src={ownerAvatarUrl || undefined} />
+                <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
+              </Avatar>
+              <span>Created by {group.owner?.full_name}</span>
+            </div>
           </div>
         </div>
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+              <Edit2 className="mr-2 h-4 w-4" />
+              Edit Group
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsManageMembersOpen(true)}>
+              <Settings className="mr-2 h-4 w-4" />
+              Manage Members
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Group Members */}
@@ -203,6 +246,22 @@ export default function GroupFeed() {
         </div>
         <LaagFeed groupId={group.id} />
       </div>
+
+      {/* Modals */}
+      <EditGroupModal
+        group={group}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleEditGroup}
+      />
+
+      <ManageMembersDialog
+        groupId={group.id}
+        isOpen={isManageMembersOpen}
+        onClose={() => setIsManageMembersOpen(false)}
+        onMembersUpdated={fetchGroup}
+        ownerId={group.owner.id}
+      />
     </div>
   )
 } 

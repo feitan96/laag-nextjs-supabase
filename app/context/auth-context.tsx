@@ -3,7 +3,7 @@
 
 import { createClient } from "@/utils/supabase/client"
 import { User } from "@supabase/supabase-js"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useState, useCallback, useMemo } from "react"
 
 type Profile = {
   full_name: string | null
@@ -26,11 +26,26 @@ const AuthContext = createContext<AuthContextType>({
 
 export const useAuth = () => useContext(AuthContext)
 
+const supabase = createClient()
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const supabase = createClient()
+
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data: profileData, error } = await supabase
+      .from("profiles")
+      .select("full_name, username, avatar_url, website")
+      .eq("id", userId)
+      .single()
+
+    if (error) {
+      console.error("Error fetching profile:", error)
+    } else {
+      setProfile(profileData)
+    }
+  }, [])
 
   // Fetch user and profile data
   useEffect(() => {
@@ -39,18 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(user)
 
       if (user) {
-        // Fetch profile data from the `profiles` table
-        const { data: profileData, error } = await supabase
-          .from("profiles")
-          .select("full_name, username, avatar_url, website")
-          .eq("id", user.id)
-          .single()
-
-        if (error) {
-          console.error("Error fetching profile:", error)
-        } else {
-          setProfile(profileData)
-        }
+        await fetchProfile(user.id)
       }
 
       setIsLoading(false)
@@ -63,29 +67,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null)
 
       if (session?.user) {
-        // Fetch profile data when auth state changes
-        supabase
-          .from("profiles")
-          .select("full_name, username, avatar_url, website")
-          .eq("id", session.user.id)
-          .single()
-          .then(({ data: profileData, error }) => {
-            if (error) {
-              console.error("Error fetching profile:", error)
-            } else {
-              setProfile(profileData)
-            }
-          })
+        fetchProfile(session.user.id)
       } else {
         setProfile(null)
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [supabase])
+  }, [fetchProfile])
+
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    isLoading,
+  }), [user, profile, isLoading])
 
   return (
-    <AuthContext.Provider value={{ user, profile, isLoading }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

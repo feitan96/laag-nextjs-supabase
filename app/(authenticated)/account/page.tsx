@@ -1,12 +1,7 @@
-import { AppSidebar } from "@/components/app-sidebar"
 import AccountForm from "./account-form"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export default async function Account() {
   const supabase = await createClient()
@@ -20,13 +15,10 @@ export default async function Account() {
   }
 
   return (
-    <SidebarProvider>
-        <AppSidebar />
-        <SidebarInset>
-        <SidebarTrigger className="-ml-1" />
-          <AccountForm />
-        </SidebarInset>
-    </SidebarProvider>
+    <>
+      <SidebarTrigger className="-ml-1" />
+      <AccountForm />
+    </>
   )
 }
 

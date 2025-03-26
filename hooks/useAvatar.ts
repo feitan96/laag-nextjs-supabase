@@ -1,12 +1,14 @@
 // hooks/useAvatar.ts
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/utils/supabase/client"
+
+const supabase = createClient()
 
 export function useAvatar(url: string | null) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
-  const supabase = createClient()
+  const objectUrlRef = useRef<string | null>(null)
 
   useEffect(() => {
     async function downloadImage(path: string) {
@@ -16,7 +18,13 @@ export function useAvatar(url: string | null) {
           throw error
         }
 
+        // Clean up previous object URL
+        if (objectUrlRef.current) {
+          URL.revokeObjectURL(objectUrlRef.current)
+        }
+
         const url = URL.createObjectURL(data)
+        objectUrlRef.current = url
         setAvatarUrl(url)
       } catch (error) {
         console.log("Error downloading image: ", error)
@@ -26,9 +34,16 @@ export function useAvatar(url: string | null) {
     if (url) {
       downloadImage(url)
     } else {
-      setAvatarUrl(null) // Reset avatar URL if no URL is provided
+      setAvatarUrl(null)
     }
-  }, [url, supabase])
+
+    // Cleanup function
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current)
+      }
+    }
+  }, [url])
 
   return avatarUrl
 }

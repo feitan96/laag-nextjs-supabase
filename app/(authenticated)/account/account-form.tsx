@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { PageHeader } from "@/components/layout/page-header"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "../context/auth-context"
+import { useAuth } from "@/app/context/auth-context"
 
 export default function AccountForm() {
   const supabase = createClient()

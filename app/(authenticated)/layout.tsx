@@ -1,7 +1,8 @@
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { memo } from "react"
 
-export default function AuthenticatedLayout({
+const AuthenticatedLayout = memo(function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode
@@ -14,4 +15,6 @@ export default function AuthenticatedLayout({
       </SidebarInset>
     </SidebarProvider>
   )
-}
+})
+
+export default AuthenticatedLayout

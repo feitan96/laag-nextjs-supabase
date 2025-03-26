@@ -28,6 +28,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { memo, useMemo } from "react"
 
 // This is sample data.
 const data = {
@@ -154,15 +155,17 @@ const data = {
   ],
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+const AppSidebar = memo(function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const memoizedData = useMemo(() => data, [])
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher teams={memoizedData.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={memoizedData.navMain} />
+        <NavProjects projects={memoizedData.projects} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />
@@ -170,4 +173,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarRail />
     </Sidebar>
   )
-}
+})
+
+export { AppSidebar }

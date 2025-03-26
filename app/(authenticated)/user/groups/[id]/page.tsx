@@ -66,7 +66,6 @@ export default function GroupFeed() {
   const supabase = createClient()
   const { user } = useAuth()
   const groupPictureUrl = useGroupPicture(group?.group_picture || null)
-  const ownerAvatarUrl = useAvatar(group?.owner?.avatar_url || null)
 
   const fetchGroup = async () => {
     try {
@@ -192,13 +191,6 @@ export default function GroupFeed() {
           </div>
           <div>
             <h1 className="text-2xl font-semibold">{group.group_name}</h1>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={ownerAvatarUrl || undefined} />
-                <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
-              </Avatar>
-              <span>Created by {group.owner?.full_name}</span>
-            </div>
           </div>
         </div>
         {isOwner && (
@@ -222,15 +214,27 @@ export default function GroupFeed() {
           <Badge variant="secondary">{group.no_members} members</Badge>
         </div>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {group.members?.map((member) => (
-            <div key={member.id} className="flex items-center gap-3 rounded-lg border p-3">
-              <MemberAvatar avatarUrl={member.profile.avatar_url || null} fullName={member.profile.full_name} />
-              <div>
-                <p className="font-medium">{member.profile.full_name}</p>
-                <p className="text-sm text-muted-foreground">Member</p>
-              </div>
+          {/* Owner Section */}
+          <div className="flex items-center gap-3 rounded-lg border p-3">
+            <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
+            <div>
+              <p className="font-medium">{group.owner.full_name}</p>
+              <p className="text-sm text-muted-foreground">Group Owner</p>
             </div>
-          ))}
+          </div>
+
+          {/* Regular Members */}
+          {group.members
+            ?.filter(member => !member.is_removed)
+            .map((member) => (
+              <div key={member.id} className="flex items-center gap-3 rounded-lg border p-3">
+                <MemberAvatar avatarUrl={member.profile.avatar_url || null} fullName={member.profile.full_name} />
+                <div>
+                  <p className="font-medium">{member.profile.full_name}</p>
+                  <p className="text-sm text-muted-foreground">Member</p>
+                </div>
+              </div>
+            ))}
         </div>
       </div>
 

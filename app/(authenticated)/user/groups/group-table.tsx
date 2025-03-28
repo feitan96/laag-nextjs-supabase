@@ -16,15 +16,15 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MoreHorizontal, Search, Users } from "lucide-react"
-import { EmptyState } from "./empty-state"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
 import { toast } from "sonner"
 import { useAuth } from "@/app/context/auth-context"
-import { NewGroupDialog } from "@/app/user/groups/new-group-dialog"
+import { NewGroupDialog } from "@/app/(authenticated)/user/groups/new-group-dialog"
 import { EditGroupModal } from "@/components/edit-group-modal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useRouter } from "next/navigation"
 
 export interface Group {
   id: string
@@ -32,11 +32,16 @@ export interface Group {
   no_members: number
   created_at: string
   group_picture?: string | null
-  owner?: {
+  owner: {
     id: string
     full_name: string
     avatar_url?: string | null
   }
+  members?: {
+    id: string
+    group_member: string
+    is_removed: boolean
+  }[]
   is_deleted: boolean
 }
 
@@ -52,6 +57,7 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const groupPictureUrl = useGroupPicture(group.group_picture || null)
   const ownerAvatarUrl = useAvatar(group.owner?.avatar_url || null)
+  const router = useRouter()
 
   const supabase = createClient()
 
@@ -123,7 +129,9 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>
+                View group
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem>
               <DropdownMenuItem>Manage members</DropdownMenuItem>
               <DropdownMenuSeparator />
@@ -149,9 +157,9 @@ export function GroupTable() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
-  const [isNewGroupDialogOpen, setIsNewGroupDialogOpen] = useState(false)
   const supabase = createClient()
   const { user } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const fetchGroups = async () => {
@@ -165,12 +173,21 @@ export function GroupTable() {
             created_at,
             group_picture,
             is_deleted,
-            owner:profiles!owner(id, full_name, avatar_url)
+            owner:profiles!owner(id, full_name, avatar_url),
+            members:groupMembers(id, group_member, is_removed)
           `)
-          .eq("is_deleted", false) // Filter out deleted groups
+          .eq("is_deleted", false)
 
         if (error) throw error
-        setGroups(data || [])
+
+        // Transform the data to match our Group interface
+        const transformedData = (data || []).map((group) => ({
+          ...group,
+          owner: Array.isArray(group.owner) ? group.owner[0] : group.owner,
+          members: group.members || []
+        }))
+
+        setGroups(transformedData)
       } catch (error) {
         console.error("Error fetching groups:", error)
       } finally {
@@ -183,27 +200,13 @@ export function GroupTable() {
 
   const handleDeleteGroup = async (groupId: string) => {
     try {
-      console.log("Attempting to delete group with ID:", groupId)
-
-      // Log the current user (for debugging RLS policies)
-      console.log("Current user ID:", user?.id)
-
-      // Log the group data before the update
-      const groupToDelete = groups.find((group) => group.id === groupId)
-      console.log("Group to delete:", groupToDelete)
-
-      // Update the group's `is_deleted` field
-      const { data, error } = await supabase.from("groups").update({ is_deleted: true }).eq("id", groupId).select() // Include this to return the updated row
+      const { error } = await supabase.from("groups").update({ is_deleted: true }).eq("id", groupId).select()
 
       if (error) {
         console.error("Error deleting group:", error)
         throw error
       }
 
-      // Log the updated group data
-      console.log("Group soft-deleted successfully. Updated data:", data)
-
-      // Remove the deleted group from the local state
       setGroups((prevGroups) => prevGroups.filter((group) => group.id !== groupId))
       toast.success("Group deleted successfully")
     } catch (error) {
@@ -212,7 +215,16 @@ export function GroupTable() {
     }
   }
 
+  // Filter groups based on search query
   const filteredGroups = groups.filter((group) => group.group_name.toLowerCase().includes(searchQuery.toLowerCase()))
+
+  // Filter groups based on user's membership
+  const userGroups = filteredGroups.filter(
+    (group) => group.owner?.id === user?.id || group.members?.some((member) => member.group_member === user?.id)
+  )
+  const availableGroups = filteredGroups.filter(
+    (group) => group.owner?.id !== user?.id && !group.members?.some((member) => member.group_member === user?.id)
+  )
 
   if (loading) {
     return (
@@ -263,12 +275,9 @@ export function GroupTable() {
     )
   }
 
-  if (groups.length === 0) {
-    return <EmptyState />
-  }
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      {/* Search Bar and New Group Button */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
@@ -279,45 +288,104 @@ export function GroupTable() {
             className="h-9 w-[250px]"
           />
         </div>
-        <div className="flex items-center gap-2">
+        <NewGroupDialog />
+      </div>
+
+      {/* My Groups */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-4">
+          <h2 className="text-lg font-semibold">My Groups</h2>
+          <Badge variant="outline" className="text-xs">
+            {userGroups.length} groups
+          </Badge>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[300px]">Group Name</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {userGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  You are not a member of any groups.
+                </TableCell>
+              </TableRow>
+            ) : (
+              userGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Available Groups */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-4">
+          <h2 className="text-lg font-semibold">Available Groups</h2>
+          <Badge variant="outline" className="text-xs">
+            {availableGroups.length} groups
+          </Badge>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[300px]">Group Name</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {availableGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  No available groups found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              availableGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* All Groups */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-4">
+          <h2 className="text-lg font-semibold">All Groups</h2>
           <Badge variant="outline" className="text-xs">
             {filteredGroups.length} groups
           </Badge>
-          <NewGroupDialog />
         </div>
-      </div>
-
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[300px]">Group Name</TableHead>
-            <TableHead>Members</TableHead>
-            <TableHead>Owner</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredGroups.length === 0 ? (
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                No groups found matching your search.
-              </TableCell>
+              <TableHead className="w-[300px]">Group Name</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            filteredGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
-          )}
-        </TableBody>
-      </Table>
-
-      {filteredGroups.length > 0 && (
-        <div className="flex items-center justify-end space-x-2 p-4">
-          <div className="text-sm text-muted-foreground">
-            Showing <span className="font-medium">{filteredGroups.length}</span> of{" "}
-            <span className="font-medium">{groups.length}</span> groups
-          </div>
-        </div>
-      )}
+          </TableHeader>
+          <TableBody>
+            {filteredGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  No groups found matching your search.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   )
 }

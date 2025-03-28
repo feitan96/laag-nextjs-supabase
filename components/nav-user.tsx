@@ -5,9 +5,7 @@ import {
   BadgeCheck,
   Bell,
   ChevronsUpDown,
-  CreditCard,
   LogOut,
-  Sparkles,
 } from "lucide-react"
 
 import {
@@ -34,36 +32,43 @@ import { useAuth } from "@/app/context/auth-context"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
+import { useCallback, useMemo, memo } from "react"
 
-export function NavUser() {
+const supabase = createClient()
+
+const NavUser = memo(function NavUser() {
   const { isMobile } = useSidebar()
   const { user, profile, isLoading } = useAuth()
   const avatarUrl = useAvatar(profile?.avatar_url || null) 
   const router = useRouter()
-  const supabase = createClient()
+
+  const handleAccountClick = useCallback(() => {
+    router.push("/account")
+  }, [router])
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }, [router])
+
+  const userDisplayName = useMemo(() => {
+    return profile?.username || user?.email
+  }, [profile?.username, user?.email])
+
+  const userInitial = useMemo(() => {
+    return (profile?.username?.charAt(0) || user?.email?.charAt(0) || "U").toUpperCase()
+  }, [profile?.username, user?.email])
 
   if (isLoading) {
     return <div>Loading...</div>
   }
-
-    const handleAccountClick = () => {
-      router.push("/account")
-    }
-  
-    const handleLogout = async () => {
-      try {
-        const { error } = await supabase.auth.signOut()
-        if (error) {
-          throw error
-        }
-        router.push("/login")
-      } catch (error) {
-        console.error("Error signing out:", error)
-      }
-    }
-    
-  // console.log("Profile data:", profile)
-  // console.log("Avatar URL:", profile?.avatar_url)
 
   return (
     <SidebarMenu>
@@ -77,14 +82,14 @@ export function NavUser() {
               <Avatar className="h-8 w-8 rounded-lg">
                 <AvatarImage
                   src={avatarUrl || undefined}
-                  alt={profile?.username || "User"}
+                  alt={userDisplayName || "User"}
                 />
                 <AvatarFallback className="rounded-lg">
-                  {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+                  {userInitial}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">{profile?.username || user?.email}</span>
+                <span className="truncate font-semibold">{userDisplayName}</span>
                 <span className="truncate text-xs">{user?.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
@@ -101,14 +106,14 @@ export function NavUser() {
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
                     src={avatarUrl || undefined}
-                    alt={profile?.username || "User"}
+                    alt={userDisplayName || "User"}
                   />
                   <AvatarFallback className="rounded-lg">
-                    {profile?.username?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "U"}
+                    {userInitial}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{profile?.username || user?.email}</span>
+                  <span className="truncate font-semibold">{userDisplayName}</span>
                   <span className="truncate text-xs">{user?.email}</span>
                 </div>
               </div>
@@ -134,4 +139,10 @@ export function NavUser() {
       </SidebarMenuItem>
     </SidebarMenu>
   )
-}
+}, (prevProps, nextProps) => {
+  // Since this component doesn't take any props, we can always return true
+  // to prevent re-renders based on parent re-renders
+  return true
+})
+
+export { NavUser }

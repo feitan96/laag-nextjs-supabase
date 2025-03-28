@@ -7,13 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft } from "lucide-react"
+import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2 } from "lucide-react"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
 import { format } from "date-fns"
 import { EditLaagDialog } from "../../edit-laag-dialog"
 import Link from "next/link"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { toast } from "sonner"
 
 interface Laag {
   id: string
@@ -84,6 +86,7 @@ export default function LaagDetails() {
   const params = useParams()
   const [laag, setLaag] = useState<Laag | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
 
   const organizerAvatarUrl = useAvatar(laag?.organizer.avatar_url || null)
@@ -122,6 +125,35 @@ export default function LaagDetails() {
     fetchLaag()
   }, [params.laagId, supabase])
 
+  useEffect(() => {
+    const checkOrganizer = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setIsOrganizer(user?.id === laag?.organizer.id)
+    }
+    if (laag) {
+      checkOrganizer()
+    }
+  }, [laag?.organizer.id, supabase])
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from("laags")
+        .update({ is_deleted: true })
+        .eq("id", params.laagId)
+
+      if (error) throw error
+
+      toast.success("Laag deleted successfully")
+      window.location.href = `/user/groups/${params.id}`
+    } catch (error) {
+      console.error("Error deleting laag:", error)
+      toast.error("Failed to delete laag")
+    }
+  }
+
   if (loading) {
     return (
       <div className="container max-w-4xl py-8">
@@ -151,13 +183,39 @@ export default function LaagDetails() {
 
   return (
     <div className="container max-w-4xl py-8 space-y-8">
-      <div className="flex items-center gap-4">
-        <Link href={`/user/groups/${params.id}`}>
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-        </Link>
-        <h1 className="text-3xl font-bold">{laag.what}</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href={`/user/groups/${params.id}`}>
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          </Link>
+          <h1 className="text-3xl font-bold">{laag.what}</h1>
+        </div>
+        {isOrganizer && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Laag
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Laag</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this laag? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

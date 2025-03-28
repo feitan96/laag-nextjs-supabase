@@ -16,6 +16,9 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import Link from "next/link"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
+import { Trash2 } from "lucide-react"
+import { toast } from "sonner"
 
 interface Laag {
   id: string
@@ -240,6 +243,23 @@ function LaagCard({ laag, members }: LaagCardProps) {
     checkOrganizer()
   }, [laag.organizer.id, supabase])
 
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from("laags")
+        .update({ is_deleted: true })
+        .eq("id", laag.id)
+
+      if (error) throw error
+
+      toast.success("Laag deleted successfully")
+      window.location.reload()
+    } catch (error) {
+      console.error("Error deleting laag:", error)
+      toast.error("Failed to delete laag")
+    }
+  }
+
   // Get status badge variant based on status
   const getStatusVariant = (status: string) => {
     switch (status.toLowerCase()) {
@@ -291,6 +311,28 @@ function LaagCard({ laag, members }: LaagCardProps) {
                 <DropdownMenuItem asChild>
                   <EditLaagDialog laag={laag} members={members} onLaagUpdated={() => window.location.reload()} />
                 </DropdownMenuItem>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Trash2 className="mr-2 h-4 w-4 text-destructive" />
+                      Delete
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Laag</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this laag? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </DropdownMenuContent>
             </DropdownMenu>
           )}

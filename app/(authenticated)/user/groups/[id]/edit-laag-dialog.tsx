@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -27,6 +27,7 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 const formSchema = z.object({
   what: z.string().min(1, "What is required"),
@@ -40,6 +41,7 @@ const formSchema = z.object({
   fun_meter: z.string().min(1, "Fun meter is required"),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
+  privacy: z.string().min(1, "Privacy is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -93,7 +95,18 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [existingImages, setExistingImages] = useState((laag.laagImages || []).filter(img => !img.is_deleted))
+  const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
+
+  useEffect(() => {
+    const checkOrganizer = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setIsOrganizer(user?.id === laag.organizer.id)
+    }
+    checkOrganizer()
+  }, [laag.organizer.id, supabase])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -111,6 +124,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       attendees: (laag.laagAttendees || [])
         .filter(attendee => !attendee.is_removed)
         .map(attendee => attendee.attendee_id),
+      privacy: "group-only",
     },
   })
 
@@ -152,6 +166,11 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
   }
 
   const onSubmit = async (values: FormValues) => {
+    if (!isOrganizer) {
+      toast.error("Only the organizer can edit this laag")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -169,6 +188,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
           when_end: values.when_end.toISOString(),
           fun_meter: parseFloat(values.fun_meter),
           updated_at: new Date().toISOString(),
+          privacy: values.privacy,
         })
         .eq("id", laag.id)
 
@@ -265,294 +285,316 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
           <DialogDescription>Update your laag details.</DialogDescription>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="what"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>What</FormLabel>
-                    <FormControl>
-                      <Input placeholder="What are you planning?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="where"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Where</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Where will it happen?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="why"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Why</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Why are you planning this?" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="estimated_cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Estimated Cost</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="actual_cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Cost (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Planning, In Progress, Completed" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="when_start"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date()
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="when_end"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>End Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date()
-                          }
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="fun_meter"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fun Meter (1-10)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-2">
-              <FormLabel>Images</FormLabel>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {existingImages.map((image, index) => (
-                  <div key={image.id} className="relative aspect-square">
-                    <Image
-                      src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/laags/${image.image}`}
-                      alt={`Existing image ${index + 1}`}
-                      fill
-                      className="rounded-lg object-cover"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-2 top-2 h-6 w-6"
-                      onClick={() => removeImage(index, true)}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                ))}
-                {imagePreviews.map((preview, index) => (
-                  <div key={`preview-${index}`} className="relative aspect-square">
-                    <Image
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      fill
-                      className="rounded-lg object-cover"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-2 top-2 h-6 w-6"
-                      onClick={() => removeImage(index)}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                ))}
-                <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
-                  <Upload className="h-8 w-8 text-gray-400" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
-                </label>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <FormLabel>Attendees</FormLabel>
+        <ScrollArea className="max-h-[80vh]">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                {members.map((member) => (
-                  <FormField
-                    key={member.profile.id}
-                    control={form.control}
-                    name="attendees"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(member.profile.id)}
-                            onCheckedChange={(checked) => {
-                              const currentValue = field.value || []
-                              if (checked) {
-                                field.onChange([...currentValue, member.profile.id])
-                              } else {
-                                field.onChange(currentValue.filter(id => id !== member.profile.id))
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          {member.profile.full_name}
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
+                <FormField
+                  control={form.control}
+                  name="what"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>What</FormLabel>
+                      <FormControl>
+                        <Input placeholder="What are you planning?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Update Laag
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                <FormField
+                  control={form.control}
+                  name="where"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Where</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Where will it happen?" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="why"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Why</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Why are you planning this?" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="estimated_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estimated Cost</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="actual_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Actual Cost (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Planning, In Progress, Completed" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="when_start"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Start Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date()
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="when_end"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>End Date</FormLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) =>
+                              date < new Date()
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="fun_meter"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fun Meter (1-10)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="space-y-2">
+                <FormLabel>Images</FormLabel>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {existingImages.map((image, index) => (
+                    <div key={image.id} className="relative aspect-square">
+                      <Image
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/laags/${image.image}`}
+                        alt={`Existing image ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-2 top-2 h-6 w-6"
+                        onClick={() => removeImage(index, true)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  {imagePreviews.map((preview, index) => (
+                    <div key={`preview-${index}`} className="relative aspect-square">
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-2 top-2 h-6 w-6"
+                        onClick={() => removeImage(index)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
+                    <Upload className="h-8 w-8 text-gray-400" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <FormLabel>Attendees</FormLabel>
+                <div className="grid grid-cols-2 gap-4">
+                  {members.map((member) => (
+                    <FormField
+                      key={member.profile.id}
+                      control={form.control}
+                      name="attendees"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(member.profile.id)}
+                              onCheckedChange={(checked) => {
+                                const currentValue = field.value || []
+                                if (checked) {
+                                  field.onChange([...currentValue, member.profile.id])
+                                } else {
+                                  field.onChange(currentValue.filter(id => id !== member.profile.id))
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {member.profile.full_name}
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <FormField
+                control={form.control}
+                name="privacy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Privacy</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="group-only">Group Only</option>
+                        <option value="public">Public</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Laag
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   )

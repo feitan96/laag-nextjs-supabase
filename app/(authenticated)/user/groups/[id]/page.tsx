@@ -6,7 +6,7 @@ import { useParams } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Users, Edit2, Settings } from "lucide-react"
+import { Users, Edit2, Settings, User2 } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
@@ -17,6 +17,9 @@ import { ManageMembersDialog } from "./manage-members-dialog"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/app/context/auth-context"
 import { toast } from "sonner"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface Group {
   id: string
@@ -96,10 +99,10 @@ export default function GroupFeed() {
       const transformedData = {
         ...data,
         owner: Array.isArray(data.owner) ? data.owner[0] : data.owner,
-        members: (data.members || []).map(member => ({
+        members: (data.members || []).map((member) => ({
           ...member,
-          profile: Array.isArray(member.profile) ? member.profile[0] : member.profile
-        }))
+          profile: Array.isArray(member.profile) ? member.profile[0] : member.profile,
+        })),
       }
 
       setGroup(transformedData)
@@ -116,11 +119,7 @@ export default function GroupFeed() {
 
   const handleEditGroup = async (groupId: string, newName: string) => {
     try {
-      const { error } = await supabase
-        .from("groups")
-        .update({ group_name: newName })
-        .eq("id", groupId)
-        .select()
+      const { error } = await supabase.from("groups").update({ group_name: newName }).eq("id", groupId).select()
 
       if (error) throw error
 
@@ -135,71 +134,80 @@ export default function GroupFeed() {
 
   if (loading) {
     return (
-      <div className="space-y-6 p-6">
+      <div className="container max-w-6xl py-6 space-y-8">
         <div className="flex items-center gap-4">
-          <Skeleton className="h-16 w-16 rounded-full" />
+          <Skeleton className="h-20 w-20 rounded-full" />
           <div className="space-y-2">
-            <Skeleton className="h-6 w-[200px]" />
-            <Skeleton className="h-4 w-[150px]" />
+            <Skeleton className="h-8 w-[250px]" />
+            <Skeleton className="h-5 w-[180px]" />
           </div>
         </div>
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-[100px]" />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <Skeleton key={i} className="h-24" />
-            ))}
+        <Tabs defaultValue="laags">
+          <TabsList>
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24 ml-1" />
+          </TabsList>
+          <div className="mt-6">
+            <Skeleton className="h-[400px] w-full rounded-lg" />
           </div>
-        </div>
+        </Tabs>
       </div>
     )
   }
 
   if (!group) {
     return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-semibold">Group not found</h2>
-          <p className="text-muted-foreground">The group you&apos;re looking for doesn&apos;t exist or has been deleted.</p>
+      <div className="container max-w-6xl py-12">
+        <div className="flex h-[50vh] items-center justify-center">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle>Group not found</CardTitle>
+              <CardDescription>The group you&apos;re looking for doesn&apos;t exist or has been deleted.</CardDescription>
+            </CardHeader>
+          </Card>
         </div>
       </div>
     )
   }
 
   const isOwner = user?.id === group.owner?.id
+  const activeMembers = group.members?.filter((member) => !member.is_removed) || []
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="container mx-auto max-w-[680px] py-6 space-y-8">
       {/* Group Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+          <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
             {groupPictureUrl ? (
               <Image
-                src={groupPictureUrl}
+                src={groupPictureUrl || "/placeholder.svg"}
                 alt={group.group_name}
-                width={64}
-                height={64}
-                className="h-16 w-16 rounded-full object-cover"
+                fill
+                className="object-cover"
                 onError={(e) => {
                   e.currentTarget.src = "/default-group-picture.png"
                 }}
               />
             ) : (
-              <Users className="h-8 w-8" />
+              <Users className="h-10 w-10 text-primary" />
             )}
           </div>
           <div>
-            <h1 className="text-2xl font-semibold">{group.group_name}</h1>
+            <h1 className="text-3xl font-bold">{group.group_name}</h1>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <User2 className="h-4 w-4" />
+              <span>{group.no_members} members</span>
+            </div>
           </div>
         </div>
         {isOwner && (
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsEditModalOpen(true)}>
+          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+            <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
               <Edit2 className="mr-2 h-4 w-4" />
               Edit Group
             </Button>
-            <Button variant="outline" size="sm" onClick={() => setIsManageMembersOpen(true)}>
+            <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
               <Settings className="mr-2 h-4 w-4" />
               Manage Members
             </Button>
@@ -207,49 +215,75 @@ export default function GroupFeed() {
         )}
       </div>
 
-      {/* Group Members */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Members</h2>
-          <Badge variant="secondary">{group.no_members} members</Badge>
-        </div>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {/* Owner Section */}
-          <div className="flex items-center gap-3 rounded-lg border p-3">
-            <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
-            <div>
-              <p className="font-medium">{group.owner.full_name}</p>
-              <p className="text-sm text-muted-foreground">Group Owner</p>
-            </div>
+      {/* Tabs for Laags and Members */}
+      <Tabs defaultValue="laags">
+        <TabsList className="mb-6">
+          <TabsTrigger value="laags">Laags</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="laags" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Group Activities</h2>
+            <CreateLaagDialog
+              groupId={group.id}
+              onLaagCreated={() => window.location.reload()}
+              members={group.members || []}
+            />
           </div>
+          <LaagFeed groupId={group.id} />
+        </TabsContent>
 
-          {/* Regular Members */}
-          {group.members
-            ?.filter(member => !member.is_removed)
-            .map((member) => (
-              <div key={member.id} className="flex items-center gap-3 rounded-lg border p-3">
-                <MemberAvatar avatarUrl={member.profile.avatar_url || null} fullName={member.profile.full_name} />
-                <div>
-                  <p className="font-medium">{member.profile.full_name}</p>
-                  <p className="text-sm text-muted-foreground">Member</p>
+        <TabsContent value="members">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Members</span>
+                <Badge variant="secondary">{group.no_members} total</Badge>
+              </CardTitle>
+              <CardDescription>People who are part of this group</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px] pr-4">
+                <div className="space-y-6">
+                  {/* Owner Section */}
+                  <div className="space-y-3">
+                    <h3 className="text-sm font-medium text-muted-foreground">Owner</h3>
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
+                      <div>
+                        <p className="font-medium">{group.owner.full_name}</p>
+                        <p className="text-xs text-muted-foreground">Group Owner</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Regular Members */}
+                  {activeMembers.length > 0 && (
+                    <div className="space-y-3">
+                      <h3 className="text-sm font-medium text-muted-foreground">Members</h3>
+                      <div className="grid gap-3">
+                        {activeMembers.map((member) => (
+                          <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                            <MemberAvatar
+                              avatarUrl={member.profile.avatar_url || null}
+                              fullName={member.profile.full_name}
+                            />
+                            <div>
+                              <p className="font-medium">{member.profile.full_name}</p>
+                              <p className="text-xs text-muted-foreground">Member</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
-        </div>
-      </div>
-
-      {/* Laags Section */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Laags</h2>
-          <CreateLaagDialog 
-            groupId={group.id} 
-            onLaagCreated={() => window.location.reload()} 
-            members={group.members || []}
-          />
-        </div>
-        <LaagFeed groupId={group.id} />
-      </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Modals */}
       <EditGroupModal
@@ -268,4 +302,5 @@ export default function GroupFeed() {
       />
     </div>
   )
-} 
+}
+

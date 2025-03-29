@@ -12,11 +12,11 @@ import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
 import { format } from "date-fns"
-import { EditLaagDialog } from "../../edit-laag-dialog"
+import { EditLaagDialog } from "../../../../../../../components/laags/edit-laag-dialog"
 import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { CommentCard } from "../../comment-card"
+import { CommentCard } from "../../../../../../../components/laags/comment-card"
 
 interface Comment {
   id: string

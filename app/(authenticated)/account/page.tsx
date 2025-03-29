@@ -1,4 +1,4 @@
-import AccountForm from "./account-form"
+import AccountForm from "../../../components/account/account-form"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
 import { SidebarTrigger } from "@/components/ui/sidebar"

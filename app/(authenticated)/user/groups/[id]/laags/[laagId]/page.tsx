@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2 } from "lucide-react"
+import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2, Edit2, MessageSquare } from "lucide-react"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
@@ -16,6 +16,22 @@ import { EditLaagDialog } from "../../edit-laag-dialog"
 import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
+import { CommentCard } from "../../comment-card"
+
+interface Comment {
+  id: string
+  comment: string
+  created_at: string
+  updated_at: string
+  user_id: string
+  laag_id: string
+  is_deleted: boolean
+  user: {
+    id: string
+    full_name: string
+    avatar_url: string | null
+  }
+}
 
 interface Laag {
   id: string
@@ -54,6 +70,7 @@ interface Laag {
       avatar_url: string | null
     }
   }[]
+  comments: Comment[]
 }
 
 function LaagImage({ imagePath }: { imagePath: string }) {
@@ -115,7 +132,8 @@ export default function LaagDetails() {
               attendee_id,
               is_removed,
               attendee:profiles(id, full_name, avatar_url)
-            )
+            ),
+            comments(*)
           `)
           .eq("id", params.laagId)
           .eq("is_deleted", false)

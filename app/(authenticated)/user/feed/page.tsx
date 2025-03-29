@@ -16,7 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Trash2, CalendarRange, MapPin, DollarSign, Smile, Clock, ImageIcon, MoreHorizontal } from "lucide-react"
+import { Trash2, CalendarRange, MapPin, DollarSign, Smile, Clock, ImageIcon, MoreHorizontal, MessageSquare, Edit2 } from "lucide-react"
 import { toast } from "sonner"
 
 interface Laag {
@@ -49,6 +49,20 @@ interface Laag {
     id: string
     attendee_id: string
     is_removed: boolean
+  }[]
+  comments: {
+    id: string
+    comment: string
+    created_at: string
+    updated_at: string
+    user_id: string
+    laag_id: string
+    is_deleted: boolean
+    user: {
+      id: string
+      full_name: string
+      avatar_url: string | null
+    }
   }[]
 }
 
@@ -215,9 +229,140 @@ function ImageGallery({ images }: { images: Laag["laagImages"] }) {
   )
 }
 
+interface Comment {
+  id: string
+  comment: string
+  created_at: string
+  updated_at: string
+  user_id: string
+  laag_id: string
+  is_deleted: boolean
+  user: {
+    id: string
+    full_name: string
+    avatar_url: string | null
+  }
+}
+
+interface CommentCardProps {
+  comment: Comment
+  onDelete: () => void
+}
+
+function CommentCard({ comment, onDelete }: CommentCardProps) {
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedComment, setEditedComment] = useState(comment.comment)
+  const [isUser, setIsUser] = useState(false)
+  const supabase = createClient()
+  const avatarUrl = useAvatar(comment.user?.avatar_url || null)
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsUser(user?.id === comment.user_id)
+    }
+    checkUser()
+  }, [comment.user_id, supabase])
+
+  const handleUpdate = async () => {
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .update({ comment: editedComment })
+        .eq("id", comment.id)
+
+      if (error) throw error
+
+      toast.success("Comment updated successfully")
+      setIsEditing(false)
+      onDelete() // Refresh comments
+    } catch (error) {
+      console.error("Error updating comment:", error)
+      toast.error("Failed to update comment")
+    }
+  }
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .update({ is_deleted: true })
+        .eq("id", comment.id)
+
+      if (error) throw error
+
+      toast.success("Comment deleted successfully")
+      onDelete() // Refresh comments
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+      toast.error("Failed to delete comment")
+    }
+  }
+
+  if (comment.is_deleted || !comment.user) return null
+
+  return (
+    <div className="flex gap-3 p-3 border rounded-lg">
+      <Avatar className="h-8 w-8">
+        <AvatarImage src={avatarUrl || undefined} />
+        <AvatarFallback>{comment.user.full_name?.charAt(0) || "?"}</AvatarFallback>
+      </Avatar>
+      <div className="flex-1">
+        <div className="flex items-center justify-between">
+          <p className="font-medium text-sm">{comment.user.full_name || "Unknown User"}</p>
+          {isUser && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                onClick={() => setIsEditing(!isEditing)}
+              >
+                <Edit2 className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 text-destructive"
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+        {isEditing ? (
+          <div className="mt-1">
+            <textarea
+              value={editedComment}
+              onChange={(e) => setEditedComment(e.target.value)}
+              className="w-full p-2 text-sm border rounded-md"
+              rows={2}
+            />
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleUpdate}>
+                Save
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground mt-1">{comment.comment}</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function LaagCard({ laag }: LaagCardProps) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
   const [isOrganizer, setIsOrganizer] = useState(false)
+  const [showCommentInput, setShowCommentInput] = useState(false)
+  const [newComment, setNewComment] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showAllComments, setShowAllComments] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -229,6 +374,34 @@ function LaagCard({ laag }: LaagCardProps) {
     }
     checkOrganizer()
   }, [laag.organizer.id, supabase])
+
+  const handleComment = async () => {
+    if (!newComment.trim()) return
+
+    setIsSubmitting(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("User not authenticated")
+
+      const { error } = await supabase.from("comments").insert({
+        comment: newComment.trim(),
+        user_id: user.id,
+        laag_id: laag.id,
+      })
+
+      if (error) throw error
+
+      toast.success("Comment added successfully")
+      setNewComment("")
+      setShowCommentInput(false)
+      window.location.reload()
+    } catch (error) {
+      console.error("Error adding comment:", error)
+      toast.error("Failed to add comment")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleDelete = async () => {
     try {
@@ -262,6 +435,9 @@ function LaagCard({ laag }: LaagCardProps) {
         return "outline"
     }
   }
+
+  const filteredComments = laag.comments?.filter(c => !c.is_deleted) || []
+  const commentCount = filteredComments.length
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -368,20 +544,94 @@ function LaagCard({ laag }: LaagCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="flex flex-wrap items-center gap-2 pt-4">
-        <Badge variant={getStatusVariant(laag.status)}>{laag.status}</Badge>
+      <CardFooter className="flex flex-col gap-4 pt-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant={getStatusVariant(laag.status)}>{laag.status}</Badge>
 
-        <Badge variant="outline" className="flex items-center gap-1">
-          <CalendarRange className="h-3 w-3" />
-          <span>
-            {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
-          </span>
-        </Badge>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <CalendarRange className="h-3 w-3" />
+            <span>
+              {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
+            </span>
+          </Badge>
 
-        <Badge variant="outline" className="flex items-center gap-1">
-          <Smile className="h-3 w-3" />
-          <span>Fun: {laag.fun_meter}/10</span>
-        </Badge>
+          <Badge variant="outline" className="flex items-center gap-1">
+            <Smile className="h-3 w-3" />
+            <span>Fun: {laag.fun_meter}/10</span>
+          </Badge>
+        </div>
+
+        {/* Comments Section */}
+        <div className="w-full space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setShowCommentInput(!showCommentInput)}
+              >
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 p-0"
+                onClick={() => setShowAllComments(!showAllComments)}
+              >
+                <span className="text-sm text-muted-foreground">
+                  {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                </span>
+              </Button>
+            </div>
+            <Link href={`/user/groups/${laag.group_id}/laags/${laag.id}?from=public`}>
+              <Button variant="outline" size="sm">
+                View
+              </Button>
+            </Link>
+          </div>
+
+          {/* Comment Input */}
+          {showCommentInput && (
+            <div className="space-y-2">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Write a comment..."
+                className="w-full p-2 text-sm border rounded-md"
+                rows={2}
+              />
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setShowCommentInput(false)
+                    setNewComment("")
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button size="sm" onClick={handleComment} disabled={isSubmitting}>
+                  {isSubmitting ? "Posting..." : "Post"}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Comments List */}
+          {showAllComments && filteredComments.length > 0 && (
+            <div className="border-t pt-4 space-y-4">
+              {filteredComments.map((comment) => (
+                <CommentCard
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={() => window.location.reload()}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </CardFooter>
     </Card>
   )
@@ -401,7 +651,17 @@ export default function PublicFeed() {
             *,
             organizer:profiles!organizer(id, full_name, avatar_url),
             laagImages(*),
-            laagAttendees(*)
+            laagAttendees(*),
+            comments(
+              id,
+              comment,
+              created_at,
+              updated_at,
+              user_id,
+              laag_id,
+              is_deleted,
+              user:profiles(id, full_name, avatar_url)
+            )
           `)
           .eq("is_deleted", false)
           .eq("privacy", "public")

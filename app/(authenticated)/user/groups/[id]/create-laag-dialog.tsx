@@ -41,6 +41,7 @@ const formSchema = z.object({
   fun_meter: z.string().min(1, "Fun meter is required"),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
+  privacy: z.string().min(1, "Privacy is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -79,6 +80,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
       fun_meter: "",
       images: [],
       attendees: members.map(member => member.profile.id),
+      privacy: "group-only",
     },
   })
 
@@ -127,6 +129,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
         fun_meter: parseFloat(values.fun_meter),
         organizer: user.id,
         group_id: groupId,
+        privacy: values.privacy,
       })
 
       if (laagError) throw laagError
@@ -381,6 +384,26 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
                   <FormLabel>Fun Meter (1-10)</FormLabel>
                   <FormControl>
                     <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="privacy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Privacy</FormLabel>
+                  <FormControl>
+                    <select
+                      {...field}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="group-only">Group Only</option>
+                      <option value="public">Public</option>
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -41,6 +41,7 @@ const formSchema = z.object({
   fun_meter: z.string().min(1, "Fun meter is required"),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
+  privacy: z.string().min(1, "Privacy is required"),
 })
 
 type FormValues = z.infer<typeof formSchema>
@@ -94,7 +95,18 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [existingImages, setExistingImages] = useState((laag.laagImages || []).filter(img => !img.is_deleted))
+  const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
+
+  useEffect(() => {
+    const checkOrganizer = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      setIsOrganizer(user?.id === laag.organizer.id)
+    }
+    checkOrganizer()
+  }, [laag.organizer.id, supabase])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -112,6 +124,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       attendees: (laag.laagAttendees || [])
         .filter(attendee => !attendee.is_removed)
         .map(attendee => attendee.attendee_id),
+      privacy: "group-only",
     },
   })
 
@@ -153,6 +166,11 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
   }
 
   const onSubmit = async (values: FormValues) => {
+    if (!isOrganizer) {
+      toast.error("Only the organizer can edit this laag")
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -170,6 +188,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
           when_end: values.when_end.toISOString(),
           fun_meter: parseFloat(values.fun_meter),
           updated_at: new Date().toISOString(),
+          privacy: values.privacy,
         })
         .eq("id", laag.id)
 
@@ -543,6 +562,26 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   ))}
                 </div>
               </div>
+
+              <FormField
+                control={form.control}
+                name="privacy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Privacy</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="group-only">Group Only</option>
+                        <option value="public">Public</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>

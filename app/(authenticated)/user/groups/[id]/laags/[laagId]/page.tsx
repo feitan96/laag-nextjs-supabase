@@ -31,6 +31,7 @@ interface Laag {
   created_at: string
   updated_at: string
   group_id: string
+  privacy: string
   organizer: {
     id: string
     full_name: string
@@ -87,11 +88,18 @@ export default function LaagDetails() {
   const [laag, setLaag] = useState<Laag | null>(null)
   const [loading, setLoading] = useState(true)
   const [isOrganizer, setIsOrganizer] = useState(false)
+  const [isPublicView, setIsPublicView] = useState(false)
   const supabase = createClient()
 
   const organizerAvatarUrl = useAvatar(laag?.organizer.avatar_url || null)
   const filteredImages = laag?.laagImages.filter(img => !img.is_deleted) || []
   const activeAttendees = laag?.laagAttendees.filter(attendee => !attendee.is_removed) || []
+
+  useEffect(() => {
+    // Check if we're viewing from public feed
+    const searchParams = new URLSearchParams(window.location.search)
+    setIsPublicView(searchParams.get('from') === 'public')
+  }, [])
 
   useEffect(() => {
     const fetchLaag = async () => {
@@ -147,10 +155,23 @@ export default function LaagDetails() {
       if (error) throw error
 
       toast.success("Laag deleted successfully")
-      window.location.href = `/user/groups/${params.id}`
+      // Navigate back to the appropriate feed
+      if (isPublicView) {
+        window.location.href = '/user/feed'
+      } else {
+        window.location.href = `/user/groups/${params.id}`
+      }
     } catch (error) {
       console.error("Error deleting laag:", error)
       toast.error("Failed to delete laag")
+    }
+  }
+
+  const handleBack = () => {
+    if (isPublicView) {
+      window.location.href = '/user/feed'
+    } else {
+      window.location.href = `/user/groups/${params.id}`
     }
   }
 
@@ -185,11 +206,9 @@ export default function LaagDetails() {
     <div className="container max-w-4xl py-8 space-y-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href={`/user/groups/${params.id}`}>
-            <Button variant="ghost" size="icon">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </Link>
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <h1 className="text-3xl font-bold">{laag.what}</h1>
         </div>
         {isOrganizer && (
@@ -243,16 +262,18 @@ export default function LaagDetails() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold">Details</h2>
-                <EditLaagDialog
-                  laag={laag}
-                  members={activeAttendees.map(attendee => ({
-                    id: attendee.attendee.id,
-                    group_member: attendee.attendee_id,
-                    is_removed: false,
-                    profile: attendee.attendee
-                  }))}
-                  onLaagUpdated={() => window.location.reload()}
-                />
+                {isOrganizer && (
+                  <EditLaagDialog
+                    laag={laag}
+                    members={activeAttendees.map(attendee => ({
+                      id: attendee.attendee.id,
+                      group_member: attendee.attendee_id,
+                      is_removed: false,
+                      profile: attendee.attendee
+                    }))}
+                    onLaagUpdated={() => window.location.reload()}
+                  />
+                )}
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -349,7 +370,7 @@ export default function LaagDetails() {
             <CardHeader>
               <h2 className="text-xl font-semibold">Status</h2>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               <Badge variant={
                 laag.status.toLowerCase() === "completed" ? "default" :
                 laag.status.toLowerCase() === "ongoing" ? "secondary" :
@@ -358,6 +379,12 @@ export default function LaagDetails() {
               }>
                 {laag.status}
               </Badge>
+              <div>
+                <h3 className="font-medium mb-2">Privacy</h3>
+                <Badge variant="outline">
+                  {laag.privacy === "public" ? "Public" : "Group Only"}
+                </Badge>
+              </div>
             </CardContent>
           </Card>
         </div>

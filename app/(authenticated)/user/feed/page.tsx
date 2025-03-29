@@ -2,22 +2,21 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
 import { format } from "date-fns"
-import { EditLaagDialog } from "./edit-laag-dialog"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, Clock, ImageIcon, MoreHorizontal } from "lucide-react"
+import { EditLaagDialog } from "../groups/[id]/edit-laag-dialog"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-import { Trash2 } from "lucide-react"
+import { Trash2, CalendarRange, MapPin, DollarSign, Smile, Clock, ImageIcon, MoreHorizontal } from "lucide-react"
 import { toast } from "sonner"
 
 interface Laag {
@@ -34,7 +33,6 @@ interface Laag {
   created_at: string
   updated_at: string
   group_id: string
-  privacy: string
   organizer: {
     id: string
     full_name: string
@@ -56,24 +54,12 @@ interface Laag {
 
 interface LaagCardProps {
   laag: Laag
-  members: Member[]
 }
 
 interface LaagImageProps {
   imagePath: string
   onClick?: () => void
   priority?: boolean
-}
-
-interface Member {
-  id: string
-  group_member: string
-  is_removed: boolean
-  profile: {
-    id: string
-    full_name: string
-    avatar_url?: string | null
-  }
 }
 
 function LaagImage({ imagePath, onClick, priority = false }: LaagImageProps) {
@@ -229,7 +215,7 @@ function ImageGallery({ images }: { images: Laag["laagImages"] }) {
   )
 }
 
-function LaagCard({ laag, members }: LaagCardProps) {
+function LaagCard({ laag }: LaagCardProps) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
   const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
@@ -295,7 +281,7 @@ function LaagCard({ laag, members }: LaagCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href={`/user/groups/${laag.group_id}/laags/${laag.id}?from=group`}>
+          <Link href={`/user/groups/${laag.group_id}/laags/${laag.id}?from=public`}>
             <Button variant="outline" size="sm">
               View
             </Button>
@@ -310,7 +296,7 @@ function LaagCard({ laag, members }: LaagCardProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem asChild>
-                  <EditLaagDialog laag={laag} members={members} onLaagUpdated={() => window.location.reload()} />
+                  <EditLaagDialog laag={laag} members={[]} onLaagUpdated={() => window.location.reload()} />
                 </DropdownMenuItem>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -396,22 +382,13 @@ function LaagCard({ laag, members }: LaagCardProps) {
           <Smile className="h-3 w-3" />
           <span>Fun: {laag.fun_meter}/10</span>
         </Badge>
-
-        <Badge variant="outline">
-          {laag.privacy === "public" ? "Public" : "Group Only"}
-        </Badge>
       </CardFooter>
     </Card>
   )
 }
 
-interface LaagFeedProps {
-  groupId: string
-}
-
-export function LaagFeed({ groupId }: LaagFeedProps) {
+export default function PublicFeed() {
   const [laags, setLaags] = useState<Laag[]>([])
-  const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -426,53 +403,25 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
             laagImages(*),
             laagAttendees(*)
           `)
-          .eq("group_id", groupId)
           .eq("is_deleted", false)
+          .eq("privacy", "public")
           .order("created_at", { ascending: false })
 
         if (error) throw error
         setLaags(data)
       } catch (error) {
         console.error("Error fetching laags:", error)
-      }
-    }
-
-    const fetchMembers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("groupMembers")
-          .select(`
-            id,
-            group_member,
-            is_removed,
-            profile:profiles(id, full_name, avatar_url)
-          `)
-          .eq("group_id", groupId)
-          .eq("is_removed", false)
-
-        if (error) throw error
-
-        // Transform the data to ensure profile is a single object, not an array
-        const transformedData = (data || []).map((member) => ({
-          ...member,
-          profile: Array.isArray(member.profile) ? member.profile[0] : member.profile,
-        }))
-
-        setMembers(transformedData)
-      } catch (error) {
-        console.error("Error fetching members:", error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchLaags()
-    fetchMembers()
-  }, [groupId, supabase])
+  }, [supabase])
 
   if (loading) {
     return (
-      <div className="space-y-6">
+      <div className="container max-w-[680px] py-6 space-y-6">
         {Array.from({ length: 2 }).map((_, i) => (
           <Card key={i} className="overflow-hidden">
             <CardHeader className="pb-2">
@@ -512,21 +461,23 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
 
   if (laags.length === 0) {
     return (
-      <Card className="flex h-[200px] items-center justify-center border-dashed bg-muted/20">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-2">No laags yet</p>
-          <p className="text-xs text-muted-foreground">Be the first to create one!</p>
-        </div>
-      </Card>
+      <div className="container max-w-[680px] py-6">
+        <Card className="flex h-[200px] items-center justify-center border-dashed bg-muted/20">
+          <div className="text-center">
+            <p className="text-muted-foreground mb-2">No public laags yet</p>
+            <p className="text-xs text-muted-foreground">Be the first to create one!</p>
+          </div>
+        </Card>
+      </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container max-w-[680px] py-6 space-y-6">
+      <h1 className="text-3xl font-bold">Public Laags</h1>
       {laags.map((laag) => (
-        <LaagCard key={laag.id} laag={laag} members={members} />
+        <LaagCard key={laag.id} laag={laag} />
       ))}
     </div>
   )
-}
-
+} 

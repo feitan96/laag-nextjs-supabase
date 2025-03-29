@@ -51,7 +51,7 @@ export default function AccountForm() {
         setAvatarUrl(data.avatar_url)
       }
     } catch (error) {
-      toast.error("Failed to load profile data")
+      toast.error("Failed to load profile data: " + error)
     } finally {
       setLoading(false)
     }
@@ -81,8 +81,9 @@ export default function AccountForm() {
       if (error) throw error
 
       toast.success("Profile updated successfully")
+      window.location.reload()
     } catch (error) {
-      toast.error("Failed to update profile")
+      toast.error("Failed to update profile: " + error)
     } finally {
       setUpdating(false)
     }

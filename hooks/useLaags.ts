@@ -1,5 +1,5 @@
 // hooks/useLaags.ts
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { fetchLaags, fetchMembers } from "@/services/laags"
 import { Laag, Member } from "@/types"
 
@@ -9,7 +9,7 @@ export const useLaags = (groupId: string) => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
       const [laagsData, membersData] = await Promise.all([
@@ -23,11 +23,11 @@ export const useLaags = (groupId: string) => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [groupId])
 
   useEffect(() => {
     loadData()
-  }, [groupId])
+  }, [loadData])
 
   return { 
     laags, 

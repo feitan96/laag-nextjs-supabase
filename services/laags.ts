@@ -1,6 +1,6 @@
 // services/laags.ts
 import { createClient } from "@/utils/supabase/client"
-import { Laag } from "@/types"
+import { Laag, Member } from "@/types"
 
 export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
   const supabase = createClient()
@@ -21,6 +21,27 @@ export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
   return data
 }
 
+export const fetchMembers = async (groupId: string): Promise<Member[]> => {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("groupMembers")
+    .select(`
+      id,
+      group_member,
+      is_removed,
+      profile:profiles(id, full_name, avatar_url)
+    `)
+    .eq("group_id", groupId)
+    .eq("is_removed", false)
+
+  if (error) throw error
+
+  return (data || []).map((member) => ({
+    ...member,
+    profile: Array.isArray(member.profile) ? member.profile[0] : member.profile,
+  }))
+}
+
 export const deleteLaag = async (id: string): Promise<void> => {
   const supabase = createClient()
   const { error } = await supabase
@@ -29,4 +50,54 @@ export const deleteLaag = async (id: string): Promise<void> => {
     .eq("id", id)
 
   if (error) throw error
+}
+
+export const addComment = async (laagId: string, comment: string): Promise<void> => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) throw new Error("User not authenticated")
+
+  const { error } = await supabase.from("comments").insert({
+    comment: comment.trim(),
+    user_id: user.id,
+    laag_id: laagId,
+  })
+
+  if (error) throw error
+}
+
+export const updateComment = async (commentId: string, comment: string): Promise<void> => {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("comments")
+    .update({ comment })
+    .eq("id", commentId)
+
+  if (error) throw error
+}
+
+export const deleteComment = async (commentId: string): Promise<void> => {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("comments")
+    .update({ is_deleted: true })
+    .eq("id", commentId)
+
+  if (error) throw error
+}
+
+export const getStatusVariant = (status: string): "outline" | "secondary" | "default" | "destructive" => {
+  switch (status.toLowerCase()) {
+    case "planned":
+      return "outline"
+    case "ongoing":
+      return "secondary"
+    case "completed":
+      return "default"
+    case "cancelled":
+      return "destructive"
+    default:
+      return "outline"
+  }
 }

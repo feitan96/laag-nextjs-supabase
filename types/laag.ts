@@ -75,3 +75,41 @@ export interface LaagImage {
     comments: Comment[]
     laagNotifications: LaagNotification[]
   }
+
+  export interface Member {
+    id: string
+    group_member: string
+    is_removed: boolean
+    profile: {
+      id: string
+      full_name: string
+      avatar_url?: string | null
+    }
+  }
+
+  export interface LaagCardProps {
+    laag: Laag
+    members: Member[]
+  }
+
+  export interface LaagImageProps {
+    imagePath: string
+    onClick?: () => void
+    priority?: boolean
+  }
+
+  export interface CommentCardProps {
+    comment: Comment
+    onDelete: () => void
+  }
+
+  export interface ImageGalleryProps {
+    images: LaagImage[]
+  }
+
+  export interface LaagFeedProps {
+    groupId: string
+  }
+
+  export type LaagStatus = 'planned' | 'ongoing' | 'completed' | 'cancelled'
+  export type LaagPrivacy = 'public' | 'private'

@@ -21,8 +21,8 @@ import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
 import { toast } from "sonner"
 import { useAuth } from "@/app/context/auth-context"
-import { NewGroupDialog } from "@/app/(authenticated)/user/groups/new-group-dialog"
-import { EditGroupModal } from "@/components/edit-group-modal"
+import { NewGroupDialog } from "@/components/groups/new-group-dialog"
+import { EditGroupModal } from "@/components/groups/edit-group-modal"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 
@@ -159,7 +159,6 @@ export function GroupTable() {
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
   const { user } = useAuth()
-  const router = useRouter()
 
   useEffect(() => {
     const fetchGroups = async () => {

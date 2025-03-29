@@ -1,5 +1,5 @@
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { GroupTable } from "./group-table"
+import { GroupTable } from "../../../../components/groups/group-table"
 
 export default function GroupsPage() {
   return (

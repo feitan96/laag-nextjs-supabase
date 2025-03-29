@@ -15,10 +15,10 @@ import {
   UsersRound,
 } from "lucide-react"
 
-import { NavMain } from "@/components/app/nav-main"
-import { NavProjects } from "@/components/app/nav-projects"
-import { NavUser } from "@/components/app/nav-user"
-import { TeamSwitcher } from "@/components/app/team-switcher"
+import { NavMain } from "@/components/app/sidebar/nav-main"
+import { NavProjects } from "@/components/app/sidebar/nav-projects"
+import { NavUser } from "@/components/app/sidebar/nav-user"
+import { TeamSwitcher } from "@/components/app/sidebar/team-switcher"
 import {
   Sidebar,
   SidebarContent,

@@ -7,16 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2, Edit2, MessageSquare } from "lucide-react"
+import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2 } from "lucide-react"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
 import { format } from "date-fns"
 import { EditLaagDialog } from "../../../../../../../components/laags/edit-laag-dialog"
-import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
-import { CommentCard } from "../../../../../../../components/laags/comment-card"
+import { CommentCard } from "@/components/laags/laag-feed/comment-card"
 
 interface Comment {
   id: string
@@ -402,6 +401,22 @@ export default function LaagDetails() {
                 <Badge variant="outline">
                   {laag.privacy === "public" ? "Public" : "Group Only"}
                 </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Comments */}
+          <Card>
+            <CardHeader>
+              <h2 className="text-xl font-semibold">Comments</h2>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {laag.comments.map((comment) => (
+                  <CommentCard key={comment.id} comment={comment} onDelete={function (): void {
+                    throw new Error("Function not implemented.")
+                  } } />
+                ))}
               </div>
             </CardContent>
           </Card>

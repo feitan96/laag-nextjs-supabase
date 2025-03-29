@@ -25,7 +25,15 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showAllComments, setShowAllComments] = useState(false)
   const supabase = createClient()
+
+  const getLaagViewLink = () => {
+    if (laag.privacy === "public") {
+      return `/user/laags/${laag.id}`
+    }
+    return `/user/groups/${laag.group_id}/laags/${laag.id}?from=group`
+  }
 
   useEffect(() => {
     const checkOrganizer = async () => {
@@ -80,6 +88,9 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
     }
   }
 
+  const filteredComments = laag.comments?.filter(c => !c.is_deleted) || []
+  const commentCount = filteredComments.length
+
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -98,7 +109,7 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link href={`/user/groups/${laag.group_id}/laags/${laag.id}?from=group`}>
+          <Link href={getLaagViewLink()}>
             <Button variant="outline" size="sm">
               View
             </Button>
@@ -220,11 +231,18 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
               >
                 <MessageSquare className="h-4 w-4" />
               </Button>
-              <span className="text-sm text-muted-foreground">
-                {laag.comments?.filter(c => !c.is_deleted).length || 0} comments
-              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 p-0"
+                onClick={() => setShowAllComments(!showAllComments)}
+              >
+                <span className="text-sm text-muted-foreground">
+                  {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+                </span>
+              </Button>
             </div>
-            <Link href={`/user/groups/${laag.group_id}/laags/${laag.id}?from=group`}>
+            <Link href={getLaagViewLink()}>
               <Button variant="outline" size="sm">
                 View
               </Button>
@@ -258,12 +276,15 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
             </div>
           )}
 
-          {laag.comments?.filter(c => !c.is_deleted).length > 0 && (
-            <div className="border-t pt-4">
-              <CommentCard
-                comment={laag.comments.filter(c => !c.is_deleted)[0]}
-                onDelete={() => window.location.reload()}
-              />
+          {showAllComments && filteredComments.length > 0 && (
+            <div className="border-t pt-4 space-y-4">
+              {filteredComments.map((comment) => (
+                <CommentCard
+                  key={comment.id}
+                  comment={comment}
+                  onDelete={() => window.location.reload()}
+                />
+              ))}
             </div>
           )}
         </div>

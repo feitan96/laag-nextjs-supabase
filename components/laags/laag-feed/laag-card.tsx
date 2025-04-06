@@ -88,8 +88,18 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
     }
   }
 
-  const filteredComments = laag.comments?.filter(c => !c.is_deleted) || []
-  const commentCount = filteredComments.length
+  const filteredComments = (laag.comments || [])
+  .filter(c => !c.is_deleted)
+  .map(comment => ({
+    ...comment,
+    user: comment.user || {  // Fallback in case user data is missing
+      id: comment.user_id,
+      full_name: 'Unknown User',
+      avatar_url: null
+    }
+  }));
+
+const commentCount = filteredComments.length;
 
   return (
     <Card className="overflow-hidden transition-all hover:shadow-md">
@@ -242,11 +252,6 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
                 </span>
               </Button>
             </div>
-            <Link href={getLaagViewLink()}>
-              <Button variant="outline" size="sm">
-                View
-              </Button>
-            </Link>
           </div>
 
           {showCommentInput && (

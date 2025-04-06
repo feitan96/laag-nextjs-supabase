@@ -11,7 +11,10 @@ export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
       organizer:profiles!organizer(id, full_name, avatar_url),
       laagImages(*),
       laagAttendees(*),
-      comments(*)
+      comments:comments!laag_id(
+        *,
+        user:profiles!user_id(id, full_name, avatar_url)
+      )
     `)
     .eq("group_id", groupId)
     .eq("is_deleted", false)

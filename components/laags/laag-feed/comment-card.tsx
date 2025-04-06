@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { CommentCardProps } from "@/types"
+import { Textarea } from "@/components/ui/textarea"
 
 export function CommentCard({ comment, onDelete }: CommentCardProps) {
   const [isEditing, setIsEditing] = useState(false)
@@ -25,18 +26,26 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
       return
     }
 
+    if (editedComment.length > 250) {
+      toast.error("Comment must be 250 characters or less")
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const { error } = await supabase
         .from("comments")
-        .update({ comment: editedComment.trim() })
+        .update({ 
+          comment: editedComment.trim(),
+          updated_at: new Date().toISOString()
+        })
         .eq("id", comment.id)
 
       if (error) throw error
 
       toast.success("Comment updated successfully")
       setIsEditing(false)
-      onDelete()
+      onDelete() // This will trigger a refresh
     } catch (error) {
       console.error("Error updating comment:", error)
       toast.error("Failed to update comment")
@@ -71,19 +80,24 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
         <AvatarFallback>{comment.user.full_name.charAt(0)}</AvatarFallback>
       </Avatar>
 
-      <div className="flex-1 space-y-2">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-medium">{comment.user.full_name}</p>
+      <div className="flex-1 min-w-0"> {/* Added min-w-0 to prevent overflow */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0"> {/* Added min-w-0 here too */}
+            <p className="text-sm font-medium truncate">{comment.user.full_name}</p>
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>{format(new Date(comment.created_at), "MMM d, yyyy 'at' h:mm a")}</span>
+              <Clock className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">
+                {format(new Date(comment.created_at), "MMM d, yyyy 'at' h:mm a")}
+                {comment.updated_at && comment.updated_at !== comment.created_at && (
+                  <span className="text-muted-foreground/80"> (edited)</span>
+                )}
+              </span>
             </div>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
                 <MoreHorizontal className="h-4 w-4" />
                 <span className="sr-only">More options</span>
               </Button>
@@ -120,33 +134,48 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
         </div>
 
         {isEditing ? (
-          <div className="space-y-2">
-            <textarea
+          <div className="mt-2 space-y-2">
+            <Textarea
               value={editedComment}
               onChange={(e) => setEditedComment(e.target.value)}
-              className="w-full p-2 text-sm border rounded-md"
-              rows={2}
+              placeholder="Edit your comment..."
+              rows={3}
+              maxLength={250}
+              className="w-full"
             />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setIsEditing(false)
-                  setEditedComment(comment.comment)
-                }}
-              >
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleUpdate} disabled={isSubmitting}>
-                {isSubmitting ? "Updating..." : "Update"}
-              </Button>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                {editedComment.length}/250 characters
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditing(false)
+                    setEditedComment(comment.comment)
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  size="sm" 
+                  onClick={handleUpdate} 
+                  disabled={isSubmitting || !editedComment.trim() || editedComment.length > 250}
+                >
+                  {isSubmitting ? "Updating..." : "Update"}
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
-          <p className="text-sm whitespace-pre-wrap">{comment.comment}</p>
+          <div className="mt-2 p-3 bg-muted/50 rounded-lg"> {/* Added container with background */}
+            <p className="text-sm break-words whitespace-pre-wrap">
+              {comment.comment}
+            </p>
+          </div>
         )}
       </div>
     </div>
   )
-} 
+}

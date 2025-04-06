@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2 } from "lucide-react"
+import { CalendarRange, MapPin, DollarSign, Smile, ArrowLeft, Trash2, MessageSquare } from "lucide-react"
 import { useAvatar } from "@/hooks/useAvatar"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import Image from "next/image"
@@ -17,61 +17,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner"
 import { CommentCard } from "@/components/laags/laag-feed/comment-card"
 import { CompleteLaagDialog } from "@/components/laags/complete-laag-dialog"
-
-interface Comment {
-  id: string
-  comment: string
-  created_at: string
-  updated_at: string
-  user_id: string
-  laag_id: string
-  is_deleted: boolean
-  user: {
-    id: string
-    full_name: string
-    avatar_url: string | null
-  }
-}
-
-interface Laag {
-  id: string
-  what: string
-  where: string
-  why: string
-  estimated_cost: number
-  actual_cost: number | null
-  status: string
-  when_start: string
-  when_end: string
-  fun_meter: number
-  created_at: string
-  updated_at: string
-  group_id: string
-  privacy: string
-  organizer: {
-    id: string
-    full_name: string
-    avatar_url: string | null
-  }
-  laagImages: {
-    id: string
-    laag_id: string
-    image: string
-    created_at: string
-    is_deleted: boolean
-  }[]
-  laagAttendees: {
-    id: string
-    attendee_id: string
-    is_removed: boolean
-    attendee: {
-      id: string
-      full_name: string
-      avatar_url: string | null
-    }
-  }[]
-  comments: Comment[]
-}
+import { Laag } from "@/types"
+import { Textarea } from "@/components/ui/textarea"
 
 function LaagImage({ imagePath }: { imagePath: string }) {
   const imageUrl = useLaagImage(imagePath)
@@ -85,7 +32,7 @@ function LaagImage({ imagePath }: { imagePath: string }) {
   )
 }
 
-function AttendeeAvatar({ attendee }: { attendee: Laag["laagAttendees"][0]["attendee"] }) {
+function AttendeeAvatar({ attendee }: { attendee: { id: string; full_name: string; avatar_url: string | null } }) {
   const avatarUrl = useAvatar(attendee.avatar_url)
   return (
     <div className="flex items-center gap-3">
@@ -107,16 +54,18 @@ export default function LaagDetails() {
   const [isOrganizer, setIsOrganizer] = useState(false)
   const [isPublicView, setIsPublicView] = useState(false)
   const [showCompleteDialog, setShowCompleteDialog] = useState(false)
+  const [newComment, setNewComment] = useState("")
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [showCommentInput, setShowCommentInput] = useState(false)
   const supabase = createClient()
 
   const organizerAvatarUrl = useAvatar(laag?.organizer.avatar_url || null)
   const filteredImages = laag?.laagImages.filter(img => !img.is_deleted) || []
   const activeAttendees = laag?.laagAttendees.filter(attendee => !attendee.is_removed) || []
+  const filteredComments = laag?.comments.filter(c => !c.is_deleted) || []
 
   useEffect(() => {
-    // Check if we're viewing from public feed
-    const searchParams = new URLSearchParams(window.location.search)
-    setIsPublicView(searchParams.get('from') === 'public')
+    setIsPublicView(new URLSearchParams(window.location.search).get('from') === 'public')
   }, [])
 
   useEffect(() => {
@@ -134,7 +83,10 @@ export default function LaagDetails() {
               is_removed,
               attendee:profiles(id, full_name, avatar_url)
             ),
-            comments(*)
+            comments:comments!laag_id(
+              *,
+              user:profiles!user_id(id, full_name, avatar_url)
+            )
           `)
           .eq("id", params.laagId)
           .eq("is_deleted", false)
@@ -154,14 +106,10 @@ export default function LaagDetails() {
 
   useEffect(() => {
     const checkOrganizer = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser()
       setIsOrganizer(user?.id === laag?.organizer.id)
     }
-    if (laag) {
-      checkOrganizer()
-    }
+    if (laag) checkOrganizer()
   }, [laag?.organizer.id, supabase])
 
   const handleDelete = async () => {
@@ -174,23 +122,10 @@ export default function LaagDetails() {
       if (error) throw error
 
       toast.success("Laag deleted successfully")
-      // Navigate back to the appropriate feed
-      if (isPublicView) {
-        window.location.href = '/user/feed'
-      } else {
-        window.location.href = `/user/groups/${params.id}`
-      }
+      window.location.href = isPublicView ? '/user/feed' : `/user/groups/${params.id}`
     } catch (error) {
       console.error("Error deleting laag:", error)
       toast.error("Failed to delete laag")
-    }
-  }
-
-  const handleBack = () => {
-    if (isPublicView) {
-      window.location.href = '/user/feed'
-    } else {
-      window.location.href = `/user/groups/${params.id}`
     }
   }
 
@@ -211,6 +146,60 @@ export default function LaagDetails() {
     } catch (error) {
       console.error("Error cancelling laag:", error)
       toast.error("Failed to cancel laag")
+    }
+  }
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return
+
+    setIsSubmittingComment(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) throw new Error("User not authenticated")
+
+      const { error } = await supabase.from("comments").insert({
+        comment: newComment.trim(),
+        user_id: user.id,
+        laag_id: params.laagId,
+      })
+
+      if (error) throw error
+
+      toast.success("Comment added successfully")
+      setNewComment("")
+      setShowCommentInput(false)
+      window.location.reload()
+    } catch (error) {
+      console.error("Error adding comment:", error)
+      toast.error("Failed to add comment")
+    } finally {
+      setIsSubmittingComment(false)
+    }
+  }
+
+  const handleDeleteComment = async (commentId: string) => {
+    try {
+      const { error } = await supabase
+        .from("comments")
+        .update({ is_deleted: true })
+        .eq("id", commentId)
+
+      if (error) throw error
+
+      toast.success("Comment deleted successfully")
+      window.location.reload()
+    } catch (error) {
+      console.error("Error deleting comment:", error)
+      toast.error("Failed to delete comment")
+    }
+  }
+
+  const getStatusVariant = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "completed": return "default"
+      case "ongoing": return "secondary"
+      case "cancelled": return "destructive"
+      default: return "outline"
     }
   }
 
@@ -243,9 +232,10 @@ export default function LaagDetails() {
 
   return (
     <div className="container max-w-4xl py-8 space-y-8">
+      {/* Header and actions */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="ghost" size="icon" onClick={() => window.location.href = isPublicView ? '/user/feed' : `/user/groups/${params.id}`}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-3xl font-bold">{laag.what}</h1>
@@ -289,8 +279,9 @@ export default function LaagDetails() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Left column - Photos, Details, and Comments */}
         <div className="md:col-span-2 space-y-8">
-          {/* Images */}
+          {/* Photos */}
           {filteredImages.length > 0 && (
             <Card>
               <CardHeader>
@@ -336,10 +327,12 @@ export default function LaagDetails() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-medium mb-2">Description</h3>
-                <p className="whitespace-pre-wrap text-muted-foreground">{laag.why}</p>
-              </div>
+              {laag.why && (
+                <div>
+                  <h3 className="font-medium mb-2">Description</h3>
+                  <p className="whitespace-pre-wrap text-muted-foreground">{laag.why}</p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -382,10 +375,73 @@ export default function LaagDetails() {
               )}
             </CardContent>
           </Card>
+
+          {/* Comments Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold">Comments</h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowCommentInput(!showCommentInput)}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Add Comment
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showCommentInput && (
+                <div className="space-y-3">
+                  <Textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Write your comment here..."
+                    rows={3}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => {
+                        setShowCommentInput(false)
+                        setNewComment("")
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddComment}
+                      disabled={isSubmittingComment || !newComment.trim()}
+                    >
+                      {isSubmittingComment ? "Posting..." : "Post Comment"}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {filteredComments.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredComments.map((comment) => (
+                    <CommentCard 
+                      key={comment.id} 
+                      comment={comment} 
+                      onDelete={handleDeleteComment}
+                      onEdit={() => window.location.reload()} // Refresh after edit
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  No comments yet. Be the first to comment!
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
+        {/* Right column - Organizer, Attendees, Status */}
         <div className="space-y-8">
-          {/* Organizer */}
           <Card>
             <CardHeader>
               <h2 className="text-xl font-semibold">Organizer</h2>
@@ -404,36 +460,25 @@ export default function LaagDetails() {
             </CardContent>
           </Card>
 
-          {/* Attendees */}
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Attendees</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {activeAttendees
-                  .filter((attendee, index, self) => 
-                    index === self.findIndex((a) => a.attendee.id === attendee.attendee.id)
-                  )
-                  .map((attendee) => (
-                    <AttendeeAvatar key={attendee.attendee.id} attendee={attendee.attendee} />
-                  ))}
-              </div>
-            </CardContent>
-          </Card>
+          {activeAttendees.length > 0 && (
+            <Card>
+              <CardHeader>
+                <h2 className="text-xl font-semibold">Attendees</h2>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeAttendees.map((attendee) => (
+                  <AttendeeAvatar key={attendee.attendee.id} attendee={attendee.attendee} />
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Status */}
           <Card>
             <CardHeader>
               <h2 className="text-xl font-semibold">Status</h2>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Badge variant={
-                laag.status.toLowerCase() === "completed" ? "default" :
-                laag.status.toLowerCase() === "ongoing" ? "secondary" :
-                laag.status.toLowerCase() === "cancelled" ? "destructive" :
-                "outline"
-              }>
+              <Badge variant={getStatusVariant(laag.status)}>
                 {laag.status}
               </Badge>
               <div>
@@ -444,26 +489,10 @@ export default function LaagDetails() {
               </div>
             </CardContent>
           </Card>
-
-          {/* Comments */}
-          <Card>
-            <CardHeader>
-              <h2 className="text-xl font-semibold">Comments</h2>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {laag.comments.map((comment) => (
-                  <CommentCard key={comment.id} comment={comment} onDelete={function (): void {
-                    throw new Error("Function not implemented.")
-                  } } />
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
-      {/* Modals */}
+      {/* Complete Laag Dialog */}
       {showCompleteDialog && (
         <CompleteLaagDialog
           laag={laag}
@@ -480,4 +509,4 @@ export default function LaagDetails() {
       )}
     </div>
   )
-} 
+}

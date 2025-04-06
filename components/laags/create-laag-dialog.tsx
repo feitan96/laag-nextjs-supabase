@@ -395,22 +395,6 @@ export function CreateLaagDialog({
             </div>
 
             {!isPlanning && (
-              <FormField
-                control={form.control}
-                name="fun_meter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fun Meter (1-10)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {!isPlanning && (
               <div className="space-y-2">
                 <FormLabel>Images</FormLabel>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

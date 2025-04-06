@@ -377,9 +377,13 @@ export default function LaagDetails() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {activeAttendees.map((attendee) => (
-                  <AttendeeAvatar key={attendee.id} attendee={attendee.attendee} />
-                ))}
+                {activeAttendees
+                  .filter((attendee, index, self) => 
+                    index === self.findIndex((a) => a.attendee.id === attendee.attendee.id)
+                  )
+                  .map((attendee) => (
+                    <AttendeeAvatar key={attendee.attendee.id} attendee={attendee.attendee} />
+                  ))}
               </div>
             </CardContent>
           </Card>

@@ -38,7 +38,7 @@ const formSchema = z.object({
   status: z.string().min(1, "Status is required"),
   when_start: z.date(),
   when_end: z.date(),
-  fun_meter: z.string().min(1, "Fun meter is required"),
+  fun_meter: z.string().optional(),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
   privacy: z.string().min(1, "Privacy is required"),
@@ -122,9 +122,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       when_end: new Date(laag.when_end),
       fun_meter: laag.fun_meter?.toString() || "",
       images: [],
-      attendees: laag.laagAttendees
-        .filter((attendee) => !attendee.is_removed)
-        .map((attendee) => attendee.attendee_id),
+      attendees: members.map(member => member.profile.id),
       privacy: laag.privacy,
     },
   })
@@ -187,7 +185,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
           status: values.status,
           when_start: values.when_start.toISOString(),
           when_end: values.when_end.toISOString(),
-          fun_meter: parseFloat(values.fun_meter),
+          fun_meter: values.fun_meter ? parseFloat(values.fun_meter) : null,
           updated_at: new Date().toISOString(),
           privacy: values.privacy,
         })
@@ -463,22 +461,6 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                 />
               </div>
 
-              {laag.status !== "Planning" && (
-                <FormField
-                  control={form.control}
-                  name="fun_meter"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Fun Meter (1-10)</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
               <div className="space-y-2">
                 <FormLabel>Images</FormLabel>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -536,7 +518,9 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
               <div className="space-y-2">
                 <FormLabel>Attendees</FormLabel>
                 <div className="grid grid-cols-2 gap-4">
-                  {members.map((member) => (
+                  {members.filter((member, index, self) => 
+                    index === self.findIndex((m) => m.profile.id === member.profile.id)
+                  ).map((member) => (
                     <FormField
                       key={member.profile.id}
                       control={form.control}

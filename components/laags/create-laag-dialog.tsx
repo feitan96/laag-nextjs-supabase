@@ -450,7 +450,9 @@ export function CreateLaagDialog({
             <div className="space-y-2">
               <FormLabel>Attendees</FormLabel>
               <div className="grid grid-cols-2 gap-4">
-                {members.map((member) => (
+                {members.filter((member, index, self) => 
+                  index === self.findIndex((m) => m.profile.id === member.profile.id)
+                ).map((member) => (
                   <FormField
                     key={member.profile.id}
                     control={form.control}

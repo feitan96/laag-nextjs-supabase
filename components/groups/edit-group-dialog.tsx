@@ -75,7 +75,6 @@ export function EditGroupModal({ group, isOpen, onClose, onSave }: EditGroupModa
 
       toast.success("Group updated successfully")
       onClose()
-      window.location.reload()
     } catch (error) {
       console.error("Error saving group:", error)
       toast.error("Failed to update group")

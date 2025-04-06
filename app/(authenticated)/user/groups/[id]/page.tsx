@@ -18,7 +18,6 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/app/context/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface Group {
@@ -134,30 +133,68 @@ export default function GroupFeed() {
 
   if (loading) {
     return (
-      <div className="container max-w-6xl py-6 space-y-8">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-20 w-20 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-[250px]" />
-            <Skeleton className="h-5 w-[180px]" />
+      <div className="container max-w-[1200px] py-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-8">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-20 w-20 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-8 w-[250px]" />
+                <Skeleton className="h-5 w-[180px]" />
+              </div>
+            </div>
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-6 w-[150px]" />
+                <Skeleton className="h-9 w-[120px]" />
+              </div>
+              <Skeleton className="h-[400px] w-full rounded-lg" />
+            </div>
+          </div>
+          <div>
+            <Card className="overflow-hidden sticky top-6">
+              <CardHeader>
+                <Skeleton className="h-6 w-[120px]" />
+                <Skeleton className="h-4 w-[180px] mt-2" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <Skeleton className="h-5 w-[80px]" />
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <div>
+                        <Skeleton className="h-5 w-[120px]" />
+                        <Skeleton className="h-4 w-[100px] mt-1" />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <Skeleton className="h-5 w-[80px]" />
+                    <div className="grid gap-3">
+                      {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                          <Skeleton className="h-10 w-10 rounded-full" />
+                          <div>
+                            <Skeleton className="h-5 w-[120px]" />
+                            <Skeleton className="h-4 w-[100px] mt-1" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
-        <Tabs defaultValue="laags">
-          <TabsList>
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24 ml-1" />
-          </TabsList>
-          <div className="mt-6">
-            <Skeleton className="h-[400px] w-full rounded-lg" />
-          </div>
-        </Tabs>
       </div>
     )
   }
 
   if (!group) {
     return (
-      <div className="container max-w-6xl py-12">
+      <div className="container max-w-[1200px] py-12">
         <div className="flex h-[50vh] items-center justify-center">
           <Card className="max-w-md mx-auto">
             <CardHeader>
@@ -174,68 +211,66 @@ export default function GroupFeed() {
   const activeMembers = group.members?.filter((member) => !member.is_removed) || []
 
   return (
-    <div className="container mx-auto max-w-[680px] py-6 space-y-8">
-      {/* Group Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-            {groupPictureUrl ? (
-              <Image
-                src={groupPictureUrl || "/placeholder.svg"}
-                alt={group.group_name}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/default-group-picture.png"
-                }}
-              />
-            ) : (
-              <Users className="h-10 w-10 text-primary" />
+    <div className="container max-w-[1200px] py-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2 space-y-8">
+          {/* Group Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                {groupPictureUrl ? (
+                  <Image
+                    src={groupPictureUrl || "/placeholder.svg"}
+                    alt={group.group_name}
+                    fill
+                    className="object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/default-group-picture.png"
+                    }}
+                  />
+                ) : (
+                  <Users className="h-10 w-10 text-primary" />
+                )}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">{group.group_name}</h1>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User2 className="h-4 w-4" />
+                  <span>{group.no_members} members</span>
+                </div>
+              </div>
+            </div>
+            {isOwner && (
+              <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                  <Edit2 className="mr-2 h-4 w-4" />
+                  Edit Group
+                </Button>
+                <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Manage Members
+                </Button>
+              </div>
             )}
           </div>
-          <div>
-            <h1 className="text-3xl font-bold">{group.group_name}</h1>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <User2 className="h-4 w-4" />
-              <span>{group.no_members} members</span>
+
+          {/* Group Feed */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-semibold">Group Activities</h2>
+              <CreateLaagDialog
+                groupId={group.id}
+                onLaagCreated={() => window.location.reload()}
+                members={group.members || []}
+              />
             </div>
+            <LaagFeed groupId={group.id} />
           </div>
         </div>
-        {isOwner && (
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
-              <Edit2 className="mr-2 h-4 w-4" />
-              Edit Group
-            </Button>
-            <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
-              <Settings className="mr-2 h-4 w-4" />
-              Manage Members
-            </Button>
-          </div>
-        )}
-      </div>
 
-      {/* Tabs for Laags and Members */}
-      <Tabs defaultValue="laags">
-        <TabsList className="mb-6">
-          <TabsTrigger value="laags">Laags</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="laags" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Group Activities</h2>
-            <CreateLaagDialog
-              groupId={group.id}
-              onLaagCreated={() => window.location.reload()}
-              members={group.members || []}
-            />
-          </div>
-          <LaagFeed groupId={group.id} />
-        </TabsContent>
-
-        <TabsContent value="members">
-          <Card>
+        {/* Members Card */}
+        <div>
+          <Card className="overflow-hidden sticky top-6">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Members</span>
@@ -244,7 +279,7 @@ export default function GroupFeed() {
               <CardDescription>People who are part of this group</CardDescription>
             </CardHeader>
             <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
+              <ScrollArea className="h-[calc(100vh-250px)] pr-4">
                 <div className="space-y-6">
                   {/* Owner Section */}
                   <div className="space-y-3">
@@ -282,8 +317,8 @@ export default function GroupFeed() {
               </ScrollArea>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
 
       {/* Modals */}
       <EditGroupModal

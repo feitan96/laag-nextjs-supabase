@@ -16,6 +16,7 @@ import { EditLaagDialog } from "../../../../../../../components/laags/edit-laag-
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { CommentCard } from "@/components/laags/laag-feed/comment-card"
+import { CompleteLaagDialog } from "@/components/laags/complete-laag-dialog"
 
 interface Comment {
   id: string
@@ -105,6 +106,7 @@ export default function LaagDetails() {
   const [loading, setLoading] = useState(true)
   const [isOrganizer, setIsOrganizer] = useState(false)
   const [isPublicView, setIsPublicView] = useState(false)
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false)
   const supabase = createClient()
 
   const organizerAvatarUrl = useAvatar(laag?.organizer.avatar_url || null)
@@ -192,6 +194,26 @@ export default function LaagDetails() {
     }
   }
 
+  const handleCancelLaag = async () => {
+    try {
+      const { error } = await supabase
+        .from("laags")
+        .update({ 
+          status: "Cancelled",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", params.laagId)
+
+      if (error) throw error
+
+      toast.success("Laag cancelled successfully")
+      window.location.reload()
+    } catch (error) {
+      console.error("Error cancelling laag:", error)
+      toast.error("Failed to cancel laag")
+    }
+  }
+
   if (loading) {
     return (
       <div className="container max-w-4xl py-8">
@@ -229,28 +251,40 @@ export default function LaagDetails() {
           <h1 className="text-3xl font-bold">{laag.what}</h1>
         </div>
         {isOrganizer && (
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Laag
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Delete Laag</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Are you sure you want to delete this laag? This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  Delete
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          <div className="flex items-center gap-2">
+            {laag.status === "Planning" && (
+              <>
+                <Button variant="outline" onClick={() => setShowCompleteDialog(true)}>
+                  Complete Laag
+                </Button>
+                <Button variant="destructive" onClick={handleCancelLaag}>
+                  Cancel Laag
+                </Button>
+              </>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Laag
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Laag</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete this laag? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         )}
       </div>
 
@@ -428,6 +462,22 @@ export default function LaagDetails() {
           </Card>
         </div>
       </div>
+
+      {/* Modals */}
+      {showCompleteDialog && (
+        <CompleteLaagDialog
+          laag={laag}
+          members={activeAttendees.map(attendee => ({
+            id: attendee.attendee.id,
+            group_member: attendee.attendee_id,
+            is_removed: false,
+            profile: attendee.attendee
+          }))}
+          onLaagUpdated={() => window.location.reload()}
+          open={showCompleteDialog}
+          onOpenChange={setShowCompleteDialog}
+        />
+      )}
     </div>
   )
 } 

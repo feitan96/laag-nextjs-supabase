@@ -79,8 +79,18 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
 
   if (!laags || laags.length === 0) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No laags found. Be the first to create one!</p>
+      <div className="flex flex-col items-center justify-center h-full py-8">
+        <div className="relative w-48 h-48 mb-4">
+                    <Image
+                      src="/no-group-laag.svg" // Make sure to add this SVG to your public folder
+                      alt="No users available"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">No laags found. Be the first to create one!</p>
+        </div>
       </div>
     )
   }
@@ -147,7 +157,7 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
         <div className="flex flex-col items-center justify-center py-12 space-y-4">
           <div className="relative w-64 h-64">
             <Image
-              src="/no-laags.svg" // Replace with your actual image path
+              src="/no-group-laag.svg" // Replace with your actual image path
               alt="No laags found"
               fill
               className="object-contain"

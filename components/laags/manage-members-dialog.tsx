@@ -290,20 +290,20 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
                   ))
               ) : (
                 <div className="flex flex-col items-center justify-center h-full py-8">
-                <div className="relative w-48 h-48 mb-4">
-                  <Image
-                    src="/no-users.svg" // Make sure to add this SVG to your public folder
-                    alt="No users available"
-                    fill
-                    className="object-contain"
-                  />
+                  <div className="relative w-48 h-48 mb-4">
+                    <Image
+                      src="/no-users.svg" // Make sure to add this SVG to your public folder
+                      alt="No users available"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <p className="text-muted-foreground text-center">
+                    {searchQuery ? 
+                      "No users match your search" : 
+                      "No available users to add"}
+                  </p>
                 </div>
-                <p className="text-muted-foreground text-center">
-                  {searchQuery ? 
-                    "No users match your search" : 
-                    "No available users to add"}
-                </p>
-              </div>
               )}
             </ScrollArea>
           </div>

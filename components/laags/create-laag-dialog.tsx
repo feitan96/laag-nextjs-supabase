@@ -447,40 +447,38 @@ export function CreateLaagDialog({
               </div>
             )}
 
-            {!isPlanning && (
-              <div className="space-y-2">
-                <FormLabel>Attendees</FormLabel>
-                <div className="grid grid-cols-2 gap-4">
-                  {members.map((member) => (
-                    <FormField
-                      key={member.profile.id}
-                      control={form.control}
-                      name="attendees"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(member.profile.id)}
-                              onCheckedChange={(checked) => {
-                                const currentValue = field.value || []
-                                if (checked) {
-                                  field.onChange([...currentValue, member.profile.id])
-                                } else {
-                                  field.onChange(currentValue.filter(id => id !== member.profile.id))
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {member.profile.full_name}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
+            <div className="space-y-2">
+              <FormLabel>Attendees</FormLabel>
+              <div className="grid grid-cols-2 gap-4">
+                {members.map((member) => (
+                  <FormField
+                    key={member.profile.id}
+                    control={form.control}
+                    name="attendees"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-2">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value?.includes(member.profile.id)}
+                            onCheckedChange={(checked) => {
+                              const currentValue = field.value || []
+                              if (checked) {
+                                field.onChange([...currentValue, member.profile.id])
+                              } else {
+                                field.onChange(currentValue.filter(id => id !== member.profile.id))
+                              }
+                            }}
+                          />
+                        </FormControl>
+                        <FormLabel className="font-normal">
+                          {member.profile.full_name}
+                        </FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                ))}
               </div>
-            )}
+            </div>
 
             {!isPlanning && (
               <FormField

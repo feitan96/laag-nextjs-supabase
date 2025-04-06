@@ -10,7 +10,12 @@ export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
       *,
       organizer:profiles!organizer(id, full_name, avatar_url),
       laagImages(*),
-      laagAttendees(*),
+      laagAttendees(
+        id,
+        attendee_id,
+        is_removed,
+        attendee:profiles(id, full_name, avatar_url)
+      ),
       comments:comments!laag_id(
         *,
         user:profiles!user_id(id, full_name, avatar_url)
@@ -21,7 +26,18 @@ export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
     .order("created_at", { ascending: false })
 
   if (error) throw error
-  return data
+  
+  // Process attendees to ensure uniqueness
+  const processedData = data.map(laag => ({
+    ...laag,
+    laagAttendees: laag.laagAttendees
+      // Filter to show only unique attendees
+      .filter((attendee, index, self) =>
+        index === self.findIndex(a => a.attendee_id === attendee.attendee_id)
+      )
+  }))
+
+  return processedData
 }
 
 export const fetchMembers = async (groupId: string): Promise<Member[]> => {

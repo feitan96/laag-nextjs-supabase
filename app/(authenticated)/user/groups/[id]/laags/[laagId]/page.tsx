@@ -476,9 +476,17 @@ export default function LaagDetails() {
                 <h2 className="text-xl font-semibold">Attendees</h2>
               </CardHeader>
               <CardContent className="space-y-4">
-                {activeAttendees.map((attendee) => (
-                  <AttendeeAvatar key={attendee.attendee.id} attendee={attendee.attendee} />
-                ))}
+                {activeAttendees
+                  // Filter to show only unique attendees based on attendee_id
+                  .filter((attendee, index, self) =>
+                    index === self.findIndex(a => a.attendee_id === attendee.attendee_id)
+                  )
+                  .map((attendee) => (
+                    <AttendeeAvatar 
+                      key={`${attendee.attendee_id}-${attendee.id}`} // Combine attendee_id and record id for uniqueness
+                      attendee={attendee.attendee} 
+                    />
+                  ))}
               </CardContent>
             </Card>
           )}

@@ -142,36 +142,48 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
 
   const handleAddMember = async (profileId: string) => {
     try {
-      // Check if member already exists
-      const { data: existingMember } = await supabase
+      // Check if member already exists in this group (including removed ones)
+      const { data: existingRecords, error: fetchError } = await supabase
         .from("groupMembers")
-        .select("id")
+        .select("id, is_removed")
         .eq("group_id", groupId)
         .eq("group_member", profileId)
-        .single()
-
-      if (existingMember) {
-        // If member exists but was removed, update is_removed to false
-        await supabase
+        .order("created_at", { ascending: false }) // Get most recent record first
+        .limit(1)
+  
+      if (fetchError) throw fetchError
+  
+      if (existingRecords && existingRecords.length > 0) {
+        // Update existing record
+        const { error: updateError } = await supabase
           .from("groupMembers")
-          .update({ is_removed: false })
-          .eq("id", existingMember.id)
+          .update({ 
+            is_removed: false,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", existingRecords[0].id)
+  
+        if (updateError) throw updateError
+        toast.success("Member re-added successfully")
       } else {
-        // If member doesn't exist, create new entry
-        await supabase.from("groupMembers").insert({
-          group_id: groupId,
-          group_member: profileId,
-          is_removed: false
-        })
+        // Create new record if no existing ones
+        const { error: insertError } = await supabase
+          .from("groupMembers")
+          .insert({
+            group_id: groupId,
+            group_member: profileId,
+            is_removed: false
+          })
+  
+        if (insertError) throw insertError
+        toast.success("New member added successfully")
       }
-
-      toast.success("Member added successfully")
+  
       await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
       onMembersUpdated()
-      onClose()
     } catch (error) {
-      console.error("Error adding member:", error)
-      toast.error("Failed to add member")
+      console.error("Error managing member:", error)
+      toast.error(`Failed to ${existingRecords?.length ? "re-add" : "add"} member`)
     }
   }
 

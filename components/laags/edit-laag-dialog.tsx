@@ -19,7 +19,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Pencil, Upload, Loader2 } from "lucide-react"
+import { Pencil, Upload, Loader2, Edit2 } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon } from "lucide-react"
@@ -75,6 +75,7 @@ interface EditLaagDialogProps {
       created_at: string
       is_deleted: boolean
     }[]
+    privacy: string
   }
   members: {
     id: string
@@ -119,12 +120,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       status: laag.status,
       when_start: new Date(laag.when_start),
       when_end: new Date(laag.when_end),
-      fun_meter: laag.fun_meter.toString(),
+      fun_meter: laag.fun_meter?.toString() || "",
       images: [],
-      attendees: (laag.laagAttendees || [])
-        .filter(attendee => !attendee.is_removed)
-        .map(attendee => attendee.attendee_id),
-      privacy: "group-only",
+      attendees: laag.laagAttendees
+        .filter((attendee) => !attendee.is_removed)
+        .map((attendee) => attendee.attendee_id),
+      privacy: laag.privacy,
     },
   })
 
@@ -275,14 +276,14 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Pencil className="h-4 w-4" />
+        <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Edit2 className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>Edit Laag</DialogTitle>
-          <DialogDescription>Update your laag details.</DialogDescription>
+          <DialogDescription>Make changes to your laag here.</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[80vh]">
@@ -462,19 +463,21 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="fun_meter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fun Meter (1-10)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {laag.status !== "Planning" && (
+                <FormField
+                  control={form.control}
+                  name="fun_meter"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fun Meter (1-10)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="space-y-2">
                 <FormLabel>Images</FormLabel>

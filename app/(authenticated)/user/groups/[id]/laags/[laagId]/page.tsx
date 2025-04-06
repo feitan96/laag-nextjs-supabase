@@ -337,13 +337,15 @@ export default function LaagDetails() {
                 </div>
               </div>
 
-              <div>
-                <h3 className="font-medium mb-2">Fun Meter</h3>
-                <div className="flex items-center gap-2">
-                  <Smile className="h-4 w-4 text-muted-foreground" />
-                  <span>{laag.fun_meter}/10</span>
+              {laag.status !== "Planning" && (
+                <div>
+                  <h3 className="font-medium mb-2">Fun Meter</h3>
+                  <div className="flex items-center gap-2">
+                    <Smile className="h-4 w-4 text-muted-foreground" />
+                    <span>{laag.fun_meter || "Not rated"}/10</span>
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>

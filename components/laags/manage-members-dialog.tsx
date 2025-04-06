@@ -15,6 +15,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAvatar } from "@/hooks/useAvatar"
 import { toast } from "sonner"
+import { Input } from "@/components/ui/input"
+import { Search } from "lucide-react"
 
 interface Profile {
   id: string
@@ -51,6 +53,7 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
   const [currentMembers, setCurrentMembers] = useState<GroupMember[]>([])
   const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([])
   const [owner, setOwner] = useState<Profile | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
   useEffect(() => {
@@ -189,19 +192,24 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
     }
   }
 
+  // Filter available profiles based on search query
+  const filteredAvailableProfiles = availableProfiles.filter(profile => 
+    profile.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[800px]">
         <DialogHeader>
           <DialogTitle>Manage Group Members</DialogTitle>
           <DialogDescription>Add or remove members from your group.</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Current Members */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Current Members - Left Side */}
           <div>
             <h3 className="mb-2 text-sm font-medium">Current Members</h3>
-            <ScrollArea className="h-[200px] rounded-md border p-4">
+            <ScrollArea className="h-[400px] rounded-md border p-4">
               {/* Owner Section */}
               {owner && (
                 <div className="flex items-center justify-between py-2 border-b mb-2">
@@ -236,11 +244,20 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
             </ScrollArea>
           </div>
 
-          {/* Available Profiles */}
+          {/* Add Members - Right Side */}
           <div>
             <h3 className="mb-2 text-sm font-medium">Add Members</h3>
-            <ScrollArea className="h-[200px] rounded-md border p-4">
-              {availableProfiles
+            <div className="relative mb-2">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search users..."
+                className="pl-8"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <ScrollArea className="h-[400px] rounded-md border p-4">
+              {filteredAvailableProfiles
                 .filter(profile => profile.id !== ownerId)
                 .map((profile) => (
                   <div key={profile.id} className="flex items-center justify-between py-2">
@@ -257,6 +274,11 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
                     </Button>
                   </div>
                 ))}
+              {filteredAvailableProfiles.length === 0 && (
+                <div className="text-center py-4 text-muted-foreground">
+                  No users found
+                </div>
+              )}
             </ScrollArea>
           </div>
         </div>

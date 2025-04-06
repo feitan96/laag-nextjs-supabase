@@ -35,10 +35,10 @@ const formSchema = z.object({
   why: z.string().min(1, "Why is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
   actual_cost: z.string().optional(),
-  status: z.string().min(1, "Status is required"),
+  status: z.enum(["Planning", "Completed", "Cancelled"]),
   when_start: z.date(),
   when_end: z.date(),
-  fun_meter: z.string().min(1, "Fun meter is required"),
+  fun_meter: z.string().optional(),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
   privacy: z.string().min(1, "Privacy is required"),
@@ -59,10 +59,19 @@ interface CreateLaagDialogProps {
       avatar_url?: string | null
     }
   }[]
+  status: "Planning" | "Completed"
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaagDialogProps) {
-  const [open, setOpen] = useState(false)
+export function CreateLaagDialog({ 
+  groupId, 
+  onLaagCreated, 
+  members, 
+  status,
+  open,
+  onOpenChange
+}: CreateLaagDialogProps) {
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -76,13 +85,15 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
       why: "",
       estimated_cost: "",
       actual_cost: "",
-      status: "",
+      status: status,
       fun_meter: "",
       images: [],
       attendees: members.map(member => member.profile.id),
       privacy: "group-only",
     },
   })
+
+  const isPlanning = status === "Planning"
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -126,7 +137,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
         status: values.status,
         when_start: values.when_start.toISOString(),
         when_end: values.when_end.toISOString(),
-        fun_meter: parseFloat(values.fun_meter),
+        fun_meter: values.fun_meter ? parseFloat(values.fun_meter) : null,
         organizer: user.id,
         group_id: groupId,
         privacy: values.privacy,
@@ -176,7 +187,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
       form.reset()
       setUploadedImages([])
       setImagePreviews([])
-      setOpen(false)
+      onOpenChange(false)
       onLaagCreated()
     } catch (error) {
       console.error("Error creating laag:", error)
@@ -187,7 +198,7 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -261,19 +272,21 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="actual_cost"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Actual Cost (Optional)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.01" placeholder="0.00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {!isPlanning && (
+                <FormField
+                  control={form.control}
+                  name="actual_cost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Actual Cost (Optional)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
 
             <FormField
@@ -283,7 +296,12 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
                 <FormItem>
                   <FormLabel>Status</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Planning, In Progress, Completed" {...field} />
+                    <Input 
+                      {...field} 
+                      value={status}
+                      disabled={true}
+                      className="bg-muted"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -376,110 +394,118 @@ export function CreateLaagDialog({ groupId, onLaagCreated, members }: CreateLaag
               />
             </div>
 
-            <FormField
-              control={form.control}
-              name="fun_meter"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fun Meter (1-10)</FormLabel>
-                  <FormControl>
-                    <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {!isPlanning && (
+              <FormField
+                control={form.control}
+                name="fun_meter"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Fun Meter (1-10)</FormLabel>
+                    <FormControl>
+                      <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
-            <FormField
-              control={form.control}
-              name="privacy"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Privacy</FormLabel>
-                  <FormControl>
-                    <select
-                      {...field}
-                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      <option value="group-only">Group Only</option>
-                      <option value="public">Public</option>
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="space-y-2">
-              <FormLabel>Images</FormLabel>
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                {imagePreviews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square">
-                    <Image
-                      src={preview}
-                      alt={`Preview ${index + 1}`}
-                      fill
-                      className="rounded-lg object-cover"
+            {!isPlanning && (
+              <div className="space-y-2">
+                <FormLabel>Images</FormLabel>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-square">
+                      <Image
+                        src={preview}
+                        alt={`Preview ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-2 top-2 h-6 w-6"
+                        onClick={() => removeImage(index)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
+                  <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
+                    <Upload className="h-8 w-8 text-gray-400" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
                     />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute right-2 top-2 h-6 w-6"
-                      onClick={() => removeImage(index)}
-                    >
-                      ×
-                    </Button>
-                  </div>
-                ))}
-                <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
-                  <Upload className="h-8 w-8 text-gray-400" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageChange}
-                  />
-                </label>
+                  </label>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="space-y-2">
-              <FormLabel>Attendees</FormLabel>
-              <div className="grid grid-cols-2 gap-4">
-                {members.map((member) => (
-                  <FormField
-                    key={member.profile.id}
-                    control={form.control}
-                    name="attendees"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(member.profile.id)}
-                            onCheckedChange={(checked) => {
-                              const currentValue = field.value || []
-                              if (checked) {
-                                field.onChange([...currentValue, member.profile.id])
-                              } else {
-                                field.onChange(currentValue.filter(id => id !== member.profile.id))
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          {member.profile.full_name}
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                ))}
+            {!isPlanning && (
+              <div className="space-y-2">
+                <FormLabel>Attendees</FormLabel>
+                <div className="grid grid-cols-2 gap-4">
+                  {members.map((member) => (
+                    <FormField
+                      key={member.profile.id}
+                      control={form.control}
+                      name="attendees"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(member.profile.id)}
+                              onCheckedChange={(checked) => {
+                                const currentValue = field.value || []
+                                if (checked) {
+                                  field.onChange([...currentValue, member.profile.id])
+                                } else {
+                                  field.onChange(currentValue.filter(id => id !== member.profile.id))
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {member.profile.full_name}
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {!isPlanning && (
+              <FormField
+                control={form.control}
+                name="privacy"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Privacy</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="group-only">Group Only</option>
+                        <option value="public">Public</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                 Cancel
               </Button>
               <Button type="submit" disabled={loading}>

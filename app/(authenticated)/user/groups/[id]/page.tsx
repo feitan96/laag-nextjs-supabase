@@ -19,6 +19,7 @@ import { useAuth } from "@/app/context/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { LaagTypeDialog } from "../../../../../components/laags/laag-type-dialog"
 
 interface Group {
   id: string
@@ -68,6 +69,8 @@ export default function GroupFeed() {
   const supabase = createClient()
   const { user } = useAuth()
   const groupPictureUrl = useGroupPicture(group?.group_picture || null)
+  const [showCreateLaag, setShowCreateLaag] = useState(false)
+  const [laagType, setLaagType] = useState<"planning" | "completed" | null>(null)
 
   const fetchGroup = async () => {
     try {
@@ -129,6 +132,17 @@ export default function GroupFeed() {
       console.error("Error updating group:", error)
       toast.error("Failed to update group")
     }
+  }
+
+  const handleLaagTypeSelect = (type: "planning" | "completed") => {
+    setLaagType(type)
+    setShowCreateLaag(true)
+  }
+
+  const handleLaagCreated = () => {
+    window.location.reload()
+    setShowCreateLaag(false)
+    setLaagType(null)
   }
 
   if (loading) {
@@ -258,11 +272,7 @@ export default function GroupFeed() {
           <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-xl font-semibold">Group Activities</h2>
-              <CreateLaagDialog
-                groupId={group.id}
-                onLaagCreated={() => window.location.reload()}
-                members={group.members || []}
-              />
+              <LaagTypeDialog onSelect={handleLaagTypeSelect} />
             </div>
             <LaagFeed groupId={group.id} />
           </div>
@@ -335,6 +345,17 @@ export default function GroupFeed() {
         onMembersUpdated={fetchGroup}
         ownerId={group.owner.id}
       />
+
+      {showCreateLaag && laagType && (
+        <CreateLaagDialog
+          groupId={group.id}
+          onLaagCreated={handleLaagCreated}
+          members={group.members || []}
+          status={laagType === "planning" ? "Planning" : "Completed"}
+          open={showCreateLaag}
+          onOpenChange={setShowCreateLaag}
+        />
+      )}
     </div>
   )
 }

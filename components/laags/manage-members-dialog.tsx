@@ -17,6 +17,8 @@ import { useAvatar } from "@/hooks/useAvatar"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import Image from "next/image"
+
 
 interface Profile {
   id: string
@@ -197,7 +199,6 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
       toast.success("Member removed successfully")
       await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
       onMembersUpdated()
-      onClose()
     } catch (error) {
       console.error("Error removing member:", error)
       toast.error("Failed to remove member")
@@ -269,27 +270,40 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
               />
             </div>
             <ScrollArea className="h-[400px] rounded-md border p-4">
-              {filteredAvailableProfiles
-                .filter(profile => profile.id !== ownerId)
-                .map((profile) => (
-                  <div key={profile.id} className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-3">
-                      <MemberAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} />
-                      <span>{profile.full_name}</span>
+              {filteredAvailableProfiles.length > 0 ? (
+                filteredAvailableProfiles
+                  .filter(profile => profile.id !== ownerId)
+                  .map((profile) => (
+                    <div key={profile.id} className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-3">
+                        <MemberAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} />
+                        <span>{profile.full_name}</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleAddMember(profile.id)}
+                      >
+                        Add
+                      </Button>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddMember(profile.id)}
-                    >
-                      Add
-                    </Button>
-                  </div>
-                ))}
-              {filteredAvailableProfiles.length === 0 && (
-                <div className="text-center py-4 text-muted-foreground">
-                  No users found
+                  ))
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full py-8">
+                <div className="relative w-48 h-48 mb-4">
+                  <Image
+                    src="/no-users.svg" // Make sure to add this SVG to your public folder
+                    alt="No users available"
+                    fill
+                    className="object-contain"
+                  />
                 </div>
+                <p className="text-muted-foreground text-center">
+                  {searchQuery ? 
+                    "No users match your search" : 
+                    "No available users to add"}
+                </p>
+              </div>
               )}
             </ScrollArea>
           </div>

@@ -432,8 +432,18 @@ export default function LaagDetails() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-muted-foreground">
-                  No comments yet. Be the first to comment!
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <div className="relative w-64 h-64">
+                    <Image
+                      src="/no-comments.svg" // Replace with your actual image path
+                      alt="No laags found"
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                  <div className="text-center py-6 text-muted-foreground">
+                    No comments yet. Be the first to comment!
+                  </div>
                 </div>
               )}
             </CardContent>

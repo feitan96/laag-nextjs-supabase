@@ -12,7 +12,11 @@ const AuthenticatedLayout = memo(function AuthenticatedLayout({
     <SidebarProvider>
       <div className="flex min-h-screen w-full flex-col">
         <NavGlobal />
-        <main className="flex-1 overflow-x-hidden">{children}</main>
+        <main className="flex flex-1 items-center justify-center overflow-x-hidden">
+          <div className="w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+            {children}
+          </div>
+        </main>
       </div>
     </SidebarProvider>
   )

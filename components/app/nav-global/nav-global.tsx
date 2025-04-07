@@ -5,6 +5,8 @@ import { useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Map, UsersRound, PieChart } from "lucide-react"
 import Image from "next/image"
+import { useTheme } from "next-themes" // Add this import
+
 
 import { NavUser } from "../sidebar/nav-user"
 import { Button } from "@/components/ui/button"
@@ -29,6 +31,7 @@ const projects = [
 ]
 
 export function NavGlobal() {
+    const { theme } = useTheme()
   const router = useRouter()
   const { user, profile } = useAuth()
 
@@ -42,22 +45,25 @@ export function NavGlobal() {
         {/* Left section - Logo and Navigation */}
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center gap-2">
+          <div className="relative h-8 w-8">
             <Image
-              src="/laag-dark-mode.png"
+              src="/laag-dark-v1.png"
               alt="Laag Logo"
-              width={32}
-              height={32}
-              className="dark:hidden"
+              fill
+              className={`object-contain ${theme === 'dark' ? 'block' : 'hidden'}`}
+              priority
             />
             <Image
               src="/laag-light-mode.png"
               alt="Laag Logo"
-              width={32}
-              height={32}
-              className="hidden dark:block"
+              fill
+              className={`object-contain ${theme === 'light' ? 'block' : 'hidden'}`}
+              priority
             />
           </div>
+        </div>
+
 
           {/* Navigation Links - Hidden on mobile */}
           <div className="hidden md:flex md:items-center md:gap-1">

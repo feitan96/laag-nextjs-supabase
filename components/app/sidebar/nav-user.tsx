@@ -88,11 +88,11 @@ const NavUser = memo(function NavUser() {
                   {userInitial}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
+              {/* <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">{userDisplayName}</span>
                 <span className="truncate text-xs">{user?.email}</span>
               </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              <ChevronsUpDown className="ml-auto size-4" /> */}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

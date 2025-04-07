@@ -1,5 +1,6 @@
-import { AppSidebar } from "@/components/app/sidebar/app-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+// app/(authenticated)/layout.tsx
+import { NavGlobal } from "@/components/app/nav-global/nav-global"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { memo } from "react"
 
 const AuthenticatedLayout = memo(function AuthenticatedLayout({
@@ -9,10 +10,10 @@ const AuthenticatedLayout = memo(function AuthenticatedLayout({
 }) {
   return (
     <SidebarProvider>
-      <AppSidebar />
-      <SidebarInset>
-        {children}
-      </SidebarInset>
+      <div className="flex min-h-screen w-full flex-col">
+        <NavGlobal />
+        <main className="flex-1 overflow-x-hidden">{children}</main>
+      </div>
     </SidebarProvider>
   )
 })

@@ -66,8 +66,7 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
       toast.success("Comment deleted successfully")
       onDelete()
     } catch (error) {
-      console.error("Error deleting comment:", error)
-      toast.error("Failed to delete comment")
+      onDelete()
     }
   }
 

@@ -163,8 +163,8 @@ export default function LaagDetails() {
       toast.success("Comment deleted successfully")
       window.location.reload()
     } catch (error) {
-      console.error("Error deleting comment:", error)
-      toast.error("Failed to delete comment")
+      window.location.reload()
+
     }
   }
 

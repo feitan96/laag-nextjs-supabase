@@ -18,12 +18,12 @@ import { LaagCardProps } from "@/types"
 import { getStatusVariant } from "@/services/laags"
 import { ImageGallery } from "./image-gallery"
 import { CommentCard } from "./comment-card"
+import { CommentInput } from "../comment-input"
 
 export function LaagCard({ laag, members = [] }: LaagCardProps) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
   const [isOrganizer, setIsOrganizer] = useState(false)
   const [showCommentInput, setShowCommentInput] = useState(false)
-  const [newComment, setNewComment] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAllComments, setShowAllComments] = useState(false)
   const supabase = createClient()
@@ -42,34 +42,6 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
     }
     checkOrganizer()
   }, [laag.organizer.id, supabase])
-
-  const handleComment = async () => {
-    if (!newComment.trim()) return
-
-    setIsSubmitting(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("User not authenticated")
-
-      const { error } = await supabase.from("comments").insert({
-        comment: newComment.trim(),
-        user_id: user.id,
-        laag_id: laag.id,
-      })
-
-      if (error) throw error
-
-      toast.success("Comment added successfully")
-      setNewComment("")
-      setShowCommentInput(false)
-      window.location.reload()
-    } catch (error) {
-      console.error("Error adding comment:", error)
-      toast.error("Failed to add comment")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const handleDelete = async () => {
     try {
@@ -255,30 +227,37 @@ const commentCount = filteredComments.length;
           </div>
 
           {showCommentInput && (
-            <div className="space-y-2">
-              <textarea
-                value={newComment}
-                onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Write a comment..."
-                className="w-full p-2 text-sm border rounded-md"
-                rows={2}
-              />
-              <div className="flex justify-end gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setShowCommentInput(false)
-                    setNewComment("")
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button size="sm" onClick={handleComment} disabled={isSubmitting}>
-                  {isSubmitting ? "Posting..." : "Post"}
-                </Button>
-              </div>
-            </div>
+            <CommentInput
+              onSubmit={async (comment) => {
+                setIsSubmitting(true)
+                try {
+                  const { data: { user } } = await supabase.auth.getUser()
+                  if (!user) throw new Error("User not authenticated")
+
+                  const { error } = await supabase.from("comments").insert({
+                    comment: comment.trim(),
+                    user_id: user.id,
+                    laag_id: laag.id,
+                  })
+
+                  if (error) throw error
+
+                  toast.success("Comment added successfully")
+                  setShowCommentInput(false)
+                  window.location.reload()
+                } catch (error) {
+                  console.error("Error adding comment:", error)
+                  toast.error("Failed to add comment")
+                } finally {
+                  setIsSubmitting(false)
+                }
+              }}
+              onCancel={() => {
+                setShowCommentInput(false)
+                setNewComment("")
+              }}
+              isSubmitting={isSubmitting}
+            />
           )}
 
           {showAllComments && filteredComments.length > 0 && (

@@ -21,7 +21,7 @@ export async function login(formData: FormData) {
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  redirect('/user/feed')
 }
 
 export async function signup(formData: FormData) {

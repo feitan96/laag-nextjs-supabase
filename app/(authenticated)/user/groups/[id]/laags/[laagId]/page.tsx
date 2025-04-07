@@ -19,6 +19,7 @@ import { CommentCard } from "@/components/laags/laag-feed/comment-card"
 import { CompleteLaagDialog } from "@/components/laags/complete-laag-dialog"
 import { Laag } from "@/types"
 import { Textarea } from "@/components/ui/textarea"
+import { CommentInput } from "@/components/laags/comment-input"
 
 function LaagImage({ imagePath }: { imagePath: string }) {
   const imageUrl = useLaagImage(imagePath)
@@ -149,33 +150,6 @@ export default function LaagDetails() {
     }
   }
 
-  const handleAddComment = async () => {
-    if (!newComment.trim()) return
-
-    setIsSubmittingComment(true)
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error("User not authenticated")
-
-      const { error } = await supabase.from("comments").insert({
-        comment: newComment.trim(),
-        user_id: user.id,
-        laag_id: params.laagId,
-      })
-
-      if (error) throw error
-
-      toast.success("Comment added successfully")
-      setNewComment("")
-      setShowCommentInput(false)
-      window.location.reload()
-    } catch (error) {
-      console.error("Error adding comment:", error)
-      toast.error("Failed to add comment")
-    } finally {
-      setIsSubmittingComment(false)
-    }
-  }
 
   const handleDeleteComment = async (commentId: string) => {
     try {
@@ -393,31 +367,37 @@ export default function LaagDetails() {
             </CardHeader>
             <CardContent className="space-y-4">
               {showCommentInput && (
-                <div className="space-y-3">
-                  <Textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write your comment here..."
-                    rows={3}
-                  />
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        setShowCommentInput(false)
-                        setNewComment("")
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleAddComment}
-                      disabled={isSubmittingComment || !newComment.trim()}
-                    >
-                      {isSubmittingComment ? "Posting..." : "Post Comment"}
-                    </Button>
-                  </div>
-                </div>
+                <CommentInput
+                  onSubmit={async (comment) => {
+                    setIsSubmittingComment(true)
+                    try {
+                      const { data: { user } } = await supabase.auth.getUser()
+                      if (!user) throw new Error("User not authenticated")
+
+                      const { error } = await supabase.from("comments").insert({
+                        comment: comment.trim(),
+                        user_id: user.id,
+                        laag_id: laag.id,
+                      })
+
+                      if (error) throw error
+
+                      toast.success("Comment added successfully")
+                      setShowCommentInput(false)
+                      window.location.reload()
+                    } catch (error) {
+                      console.error("Error adding comment:", error)
+                      toast.error("Failed to add comment")
+                    } finally {
+                      setIsSubmittingComment(false)
+                    }
+                  }}
+                  onCancel={() => {
+                    setShowCommentInput(false)
+                    setNewComment("")
+                  }}
+                  isSubmitting={isSubmittingComment}
+                />
               )}
 
               {filteredComments.length > 0 ? (
@@ -427,7 +407,7 @@ export default function LaagDetails() {
                       key={comment.id} 
                       comment={comment} 
                       onDelete={handleDeleteComment}
-                      onEdit={() => window.location.reload()} // Refresh after edit
+                      onEdit={() => window.location.reload()}
                     />
                   ))}
                 </div>
@@ -435,8 +415,8 @@ export default function LaagDetails() {
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="relative w-64 h-64">
                     <Image
-                      src="/no-comments.svg" // Replace with your actual image path
-                      alt="No laags found"
+                      src="/no-comments.svg"
+                      alt="No comments found"
                       fill
                       className="object-contain"
                     />

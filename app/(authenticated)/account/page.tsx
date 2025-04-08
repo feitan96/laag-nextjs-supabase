@@ -1,7 +1,6 @@
 import AccountForm from "../../../components/account/account-form"
 import { createClient } from "@/utils/supabase/server"
 import { redirect } from "next/navigation"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 
 export default async function Account() {
   const supabase = await createClient()
@@ -16,7 +15,6 @@ export default async function Account() {
 
   return (
     <>
-      <SidebarTrigger className="-ml-1" />
       <AccountForm />
     </>
   )

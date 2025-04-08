@@ -16,9 +16,17 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner"
 import { LaagCardProps } from "@/types"
 import { getStatusVariant } from "@/services/laags"
-import { ImageGallery } from "./image-gallery"
-import { CommentCard } from "./comment-card"
+import { ImageGallery } from "../image-gallery"
+import { CommentCard } from "../comment-card"
 import { CommentInput } from "../comment-input"
+
+const cardClasses = `
+  w-full max-w-[608px] 
+  overflow-hidden 
+  transition-all 
+  hover:shadow-md
+  mx-auto  // Center the card
+`
 
 export function LaagCard({ laag, members = [] }: LaagCardProps) {
   const organizerAvatarUrl = useAvatar(laag.organizer.avatar_url)
@@ -74,7 +82,7 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
 const commentCount = filteredComments.length;
 
   return (
-    <Card className="overflow-hidden transition-all hover:shadow-md">
+    <Card className={cardClasses}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 border">
@@ -175,7 +183,7 @@ const commentCount = filteredComments.length;
         </div>
 
         {laag.laagImages && laag.laagImages.filter((img) => !img.is_deleted).length > 0 && (
-          <div className="mb-4">
+          <div className="w-full overflow-hidden rounded-lg">
             <ImageGallery images={laag.laagImages} />
           </div>
         )}

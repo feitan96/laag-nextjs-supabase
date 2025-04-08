@@ -45,7 +45,7 @@ export function LaagTypeDialog({ onSelect }: LaagTypeDialogProps) {
               <Plus className="h-6 w-6" />
               <span>Plan a New Laag</span>
               <span className="text-sm text-muted-foreground">
-                Create a laag that you're planning to do
+                Create a laag that you&apos;re planning to do
               </span>
             </div>
           </Button>
@@ -61,7 +61,7 @@ export function LaagTypeDialog({ onSelect }: LaagTypeDialogProps) {
               <Plus className="h-6 w-6" />
               <span>Post Completed Laag</span>
               <span className="text-sm text-muted-foreground">
-                Share a laag that you've already completed
+                Share a laag that you&apos;ve already completed
               </span>
             </div>
           </Button>

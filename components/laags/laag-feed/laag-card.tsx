@@ -21,7 +21,7 @@ import { CommentCard } from "../comment-card"
 import { CommentInput } from "../comment-input"
 
 const cardClasses = `
-  w-full max-w-[608px] 
+  w-full max-w-[640px] 
   overflow-hidden 
   transition-all 
   hover:shadow-md

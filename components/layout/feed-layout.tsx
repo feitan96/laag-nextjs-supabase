@@ -49,14 +49,14 @@ export function FeedLayout({ leftSidebar, mainContent, rightSidebar }: FeedLayou
   return (
     <div className="h-screen overflow-hidden">
       <div className="container py-6 h-full px-0 md:px-4">
-        <div className="grid grid-cols-1 md:grid-cols-[300px_608px_300px] gap-6 h-full w-full justify-center max-w-[1400px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[300px_640px_300px] gap-6 h-full w-full justify-center max-w-[1400px] mx-auto">
           {/* Left Sidebar - Sticky */}
           <div className="h-full hidden md:block">
             <div className="sticky top-6">{leftSidebar}</div>
           </div>
 
           {/* Center Main Content - Scrollable */}
-          <div className="h-full overflow-y-auto custom-scrollbar w-[608px]">
+          <div className="h-full overflow-y-auto custom-scrollbar w-[640px]">
             <div className="space-y-6 w-full">{mainContent}</div>
           </div>
 

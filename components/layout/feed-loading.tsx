@@ -5,7 +5,7 @@ export function FeedLoading() {
   return (
     <div className="h-screen overflow-hidden">
       <div className="container px-0 md:px-4 py-6 h-full">
-        <div className="grid grid-cols-1 md:grid-cols-[300px_608px_300px] gap-6 h-full max-w-[1400px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-[300px_640px_300px] gap-6 h-full max-w-[1400px] mx-auto">
           {/* Left Profile Skeleton */}
           <div className="h-full hidden md:block">
             <div className="sticky top-6">
@@ -23,7 +23,7 @@ export function FeedLoading() {
           </div>
 
           {/* Center Content Skeleton */}
-          <div className="space-y-6 w-[608px]">
+          <div className="space-y-6 w-[640px]">
             <Skeleton className="h-8 w-[200px]" />
             {Array.from({ length: 2 }).map((_, i) => (
               <Card key={i} className="overflow-hidden">

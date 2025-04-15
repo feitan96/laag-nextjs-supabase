@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X, Search } from "lucide-react"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 
 type SortOption = "created_at-desc" | "created_at-asc" | "actual_cost-desc" | "actual_cost-asc"
 type StatusFilter = "Planning" | "Completed" | "Cancelled" | "All"
@@ -19,6 +20,8 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
   const [sortBy, setSortBy] = useState<SortOption>("created_at-desc")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All")
   const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>("All")
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get("q")?.toLowerCase()
 
   useEffect(() => {
     refetch()
@@ -26,6 +29,14 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
 
   const filteredLaags = laags
     ?.filter(laag => {
+      // Apply search filter
+      if (searchQuery) {
+        const searchMatch = 
+          laag.what.toLowerCase().includes(searchQuery) ||
+          laag.where.toLowerCase().includes(searchQuery) ||
+          laag.why?.toLowerCase().includes(searchQuery)
+        if (!searchMatch) return false
+      }
       // Apply status filter
       if (statusFilter !== "All" && laag.status !== statusFilter) return false
       // Apply privacy filter
@@ -51,6 +62,7 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
   const clearFilters = () => {
     setStatusFilter("All")
     setPrivacyFilter("All")
+    // Note: We don't clear the search query here as it's managed by the nav-global component
   }
 
   if (loading) {

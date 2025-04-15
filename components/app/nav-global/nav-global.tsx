@@ -7,7 +7,7 @@ import { Map, UsersRound, PieChart } from "lucide-react"
 import Image from "next/image"
 import { useTheme } from "next-themes" // Add this import
 import { NotificationsDropdown } from "./notifications-dropdown"
-
+import { SearchLaags } from "./search-laags"
 
 import { NavUser } from "../sidebar/nav-user"
 import { Button } from "@/components/ui/button"
@@ -50,7 +50,7 @@ export function NavGlobal() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background">
-      <div className="mx-auto flex h-16 w-full max-w-[100vw] items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8 max-w-7xl">
         {/* Left section - Logo and Navigation */}
         <div className="flex items-center gap-6">
           {/* Logo */}
@@ -81,7 +81,6 @@ export function NavGlobal() {
             </div>
           </div>
 
-
           {/* Navigation Links - Hidden on mobile */}
           <div className="hidden md:flex md:items-center md:gap-1">
             {projects.map((item) => (
@@ -98,8 +97,13 @@ export function NavGlobal() {
           </div>
         </div>
 
+        {/* Center section - Search */}
+        <div className="hidden md:block flex-1 px-6">
+          <SearchLaags />
+        </div>
+
         {/* Right section - User Menu */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
           {user && <NotificationsDropdown userId={user.id} />}
           <NavUser />
         </div>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import type { Laag } from "@/types"
 import { LaagCard } from "@/components/laags/laag-feed/laag-card"
+import { LaagFeed } from "@/components/laags/laag-feed"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/context/auth-context"
 import { ProfileCard } from "@/components/app/profile-card"
@@ -109,11 +110,7 @@ export default function PublicFeed() {
   const mainContent = (
     <>
       <h1 className="text-3xl font-bold">Public Laags</h1>
-      {laags.map((laag) => (
-        <div key={laag.id}>
-          <LaagCard laag={laag} members={[]} />
-        </div>
-      ))}
+      <LaagFeed laags={laags} members={[]} />
     </>
   )
 

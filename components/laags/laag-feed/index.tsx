@@ -15,8 +15,16 @@ type SortOption = "created_at-desc" | "created_at-asc" | "actual_cost-desc" | "a
 type StatusFilter = "Planning" | "Completed" | "Cancelled" | "All"
 type PrivacyFilter = "public" | "group-only" | "All"
 
-export function LaagFeed({ groupId }: LaagFeedProps) {
-  const { laags, members, loading, error, refetch } = useLaags(groupId)
+export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers }: LaagFeedProps) {
+  // Use the hook only if groupId is provided
+  const hookResult = useLaags(groupId)
+  
+  // Use either the hook results or the provided props
+  const laags = groupId ? hookResult.laags : initialLaags
+  const members = groupId ? hookResult.members : initialMembers
+  const loading = groupId ? hookResult.loading : false
+  const error = groupId ? hookResult.error : null
+  const refetch = groupId ? hookResult.refetch : () => {}
   const [sortBy, setSortBy] = useState<SortOption>("created_at-desc")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All")
   const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>("All")
@@ -26,6 +34,9 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
   useEffect(() => {
     refetch()
   }, [groupId, refetch])
+
+  // Only show status and privacy filters for group feeds
+  const showAllFilters = !!groupId
 
   const filteredLaags = laags
     ?.filter(laag => {
@@ -37,10 +48,11 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
           laag.why?.toLowerCase().includes(searchQuery)
         if (!searchMatch) return false
       }
-      // Apply status filter
-      if (statusFilter !== "All" && laag.status !== statusFilter) return false
-      // Apply privacy filter
-      if (privacyFilter !== "All" && laag.privacy !== privacyFilter) return false
+      // Only apply these filters in group context
+      if (showAllFilters) {
+        if (statusFilter !== "All" && laag.status !== statusFilter) return false
+        if (privacyFilter !== "All" && laag.privacy !== privacyFilter) return false
+      }
       return true
     })
     .sort((a, b) => {
@@ -123,34 +135,38 @@ export function LaagFeed({ groupId }: LaagFeedProps) {
             </SelectContent>
           </Select>
 
-          <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All statuses</SelectItem>
-              <SelectItem value="Planning">Planning</SelectItem>
-              <SelectItem value="Completed">Completed</SelectItem>
-              <SelectItem value="Cancelled">Cancelled</SelectItem>
-            </SelectContent>
-          </Select>
+          {showAllFilters && (
+            <>
+              <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All statuses</SelectItem>
+                  <SelectItem value="Planning">Planning</SelectItem>
+                  <SelectItem value="Completed">Completed</SelectItem>
+                  <SelectItem value="Cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
 
-          <Select value={privacyFilter} onValueChange={(value: PrivacyFilter) => setPrivacyFilter(value)}>
-            <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="Filter by privacy" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All">All privacy</SelectItem>
-              <SelectItem value="public">Public</SelectItem>
-              <SelectItem value="group-only">Group only</SelectItem>
-            </SelectContent>
-          </Select>
+              <Select value={privacyFilter} onValueChange={(value: PrivacyFilter) => setPrivacyFilter(value)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filter by privacy" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All privacy</SelectItem>
+                  <SelectItem value="public">Public</SelectItem>
+                  <SelectItem value="group-only">Group only</SelectItem>
+                </SelectContent>
+              </Select>
 
-          {(statusFilter !== "All" || privacyFilter !== "All") && (
-            <Button variant="ghost" onClick={clearFilters} className="h-8 px-2">
-              <X className="h-4 w-4 mr-1" />
-              Clear filters
-            </Button>
+              {(statusFilter !== "All" || privacyFilter !== "All") && (
+                <Button variant="ghost" onClick={clearFilters} className="h-8 px-2">
+                  <X className="h-4 w-4 mr-1" />
+                  Clear filters
+                </Button>
+              )}
+            </>
           )}
         </div>
 

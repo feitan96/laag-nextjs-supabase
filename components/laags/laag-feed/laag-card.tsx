@@ -19,6 +19,9 @@ import { getStatusVariant } from "@/services/laags"
 import { ImageGallery } from "../image-gallery"
 import { CommentCard } from "../comment-card"
 import { CommentInput } from "../comment-input"
+import { Slider } from "@/components/ui/slider"
+import { submitFunMeter, updateFunMeter, deleteFunMeter } from "@/services/laags"
+
 
 const cardClasses = `
   w-full max-w-[640px] 
@@ -34,6 +37,10 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
   const [showCommentInput, setShowCommentInput] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [showAllComments, setShowAllComments] = useState(false)
+  const [isAttendee, setIsAttendee] = useState(false)
+  const [showFunMeter, setShowFunMeter] = useState(false)
+  const [funMeterValue, setFunMeterValue] = useState<number>(0)
+  const [userFunMeter, setUserFunMeter] = useState<any>(null)
   const supabase = createClient()
 
   const getLaagViewLink = () => {
@@ -50,6 +57,52 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
     }
     checkOrganizer()
   }, [laag.organizer.id, supabase])
+
+  // Add this useEffect to check if user is attendee
+  useEffect(() => {
+    const checkAttendee = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const isUserAttendee = laag.laagAttendees.some(
+        attendee => attendee.attendee_id === user.id && !attendee.is_removed
+      )
+      setIsAttendee(isUserAttendee)
+
+      // Fetch user's fun meter if exists
+      if (isUserAttendee) {
+        const { data: funMeter } = await supabase
+          .from("laagFunMeter")
+          .select("*")
+          .eq("laag_id", laag.id)
+          .eq("user_id", user.id)
+          .eq("is_deleted", false)
+          .single()
+
+        if (funMeter) {
+          setUserFunMeter(funMeter)
+          setFunMeterValue(funMeter.fun_meter)
+        }
+      }
+    }
+    checkAttendee()
+  }, [laag.id, laag.laagAttendees, supabase])
+
+  // Add this function to handle fun meter submission
+  const handleFunMeterSubmit = async () => {
+    try {
+      if (userFunMeter) {
+        await updateFunMeter(userFunMeter.id, funMeterValue)
+      } else {
+        await submitFunMeter(laag.id, laag.group_id, funMeterValue)
+      }
+      toast.success("Fun meter updated successfully")
+      window.location.reload()
+    } catch (error) {
+      console.error("Error updating fun meter:", error)
+      toast.error("Failed to update fun meter")
+    }
+  }
 
   const handleDelete = async () => {
     try {
@@ -280,6 +333,44 @@ const commentCount = filteredComments.length;
             </div>
           )}
         </div>
+        {isAttendee && laag.status.toLowerCase() === "completed" && (
+    <div className="w-full">
+      <Button
+        variant="outline"
+        onClick={() => setShowFunMeter(true)}
+        className="w-full"
+      >
+        {userFunMeter ? "Edit your fun meter" : "Rate your experience"}
+      </Button>
+
+      <AlertDialog open={showFunMeter} onOpenChange={setShowFunMeter}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rate your experience</AlertDialogTitle>
+            <AlertDialogDescription>
+              How fun was this laag? Rate from 0 to 10
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-6">
+            <Slider
+              value={[funMeterValue]}
+              onValueChange={(value) => setFunMeterValue(value[0])}
+              max={10}
+              step={0.1}
+              className="w-full"
+            />
+            <p className="text-center mt-2">Rating: {funMeterValue.toFixed(1)}</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFunMeterSubmit}>
+              Submit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )}
       </CardFooter>
     </Card>
   )

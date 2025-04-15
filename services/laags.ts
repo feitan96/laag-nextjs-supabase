@@ -1,6 +1,7 @@
 // services/laags.ts
 import { createClient } from "@/utils/supabase/client"
 import { Laag, Member } from "@/types"
+import { Slider } from "@/components/ui/slider"
 
 export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
   const supabase = createClient()
@@ -119,4 +120,41 @@ export const getStatusVariant = (status: string): "outline" | "secondary" | "def
     default:
       return "outline"
   }
+}
+
+// Add these new functions
+export const submitFunMeter = async (laagId: string, groupId: string, funMeter: number): Promise<void> => {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (!user) throw new Error("User not authenticated")
+
+  const { error } = await supabase.from("laagFunMeter").insert({
+    fun_meter: funMeter,
+    laag_id: laagId,
+    user_id: user.id,
+    group_id: groupId
+  })
+
+  if (error) throw error
+}
+
+export const updateFunMeter = async (funMeterId: string, funMeter: number): Promise<void> => {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("laagFunMeter")
+    .update({ fun_meter: funMeter })
+    .eq("id", funMeterId)
+
+  if (error) throw error
+}
+
+export const deleteFunMeter = async (funMeterId: string): Promise<void> => {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from("laagFunMeter")
+    .update({ is_deleted: true })
+    .eq("id", funMeterId)
+
+  if (error) throw error
 }

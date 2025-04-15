@@ -132,7 +132,8 @@ export default function LaagDetails() {
 
   const handleCancelLaag = async () => {
     try {
-      const { error } = await supabase
+      // Update laag status
+      const { error: laagError } = await supabase
         .from("laags")
         .update({ 
           status: "Cancelled",
@@ -140,7 +141,43 @@ export default function LaagDetails() {
         })
         .eq("id", params.laagId)
 
-      if (error) throw error
+      if (laagError) throw laagError
+
+      // Create notification
+      const { data: createdNotification, error: notificationError } = await supabase
+        .from("laagNotifications")
+        .insert({
+          laag_id: params.laagId,
+          laag_status: "Cancelled",
+          group_id: params.id
+        })
+        .select('id')
+        .single();
+
+      if (notificationError) throw notificationError;
+      if (!createdNotification) throw new Error("Failed to create notification");
+
+      // Filter out invalid attendees and create notification reads
+      const validAttendees = activeAttendees.filter(
+        attendee => attendee?.attendee?.id
+      );
+
+      if (validAttendees.length > 0) {
+        const notificationReads = validAttendees.map(attendee => ({
+          notification_id: createdNotification.id,
+          user_id: attendee.attendee.id,
+          is_read: false
+        }));
+
+        const { error: readsError } = await supabase
+          .from("laagNotificationReads")
+          .insert(notificationReads);
+
+        if (readsError) {
+          console.error("Error creating notification reads:", readsError);
+          // Don't throw here, as the laag is already cancelled
+        }
+      }
 
       toast.success("Laag cancelled successfully")
       window.location.reload()

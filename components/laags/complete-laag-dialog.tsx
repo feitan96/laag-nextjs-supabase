@@ -53,6 +53,7 @@ interface CompleteLaagDialogProps {
     when_start: string
     when_end: string
     fun_meter: number | null
+    group_id: string
     organizer: {
       id: string
       full_name: string
@@ -162,6 +163,7 @@ export function CompleteLaagDialog({
 
       if (laagError) throw laagError
 
+      // Handle attendees updates...
       // Get current attendees
       const currentAttendees = laag.laagAttendees.filter(a => !a.is_removed)
       const newAttendees = values.attendees
@@ -226,6 +228,40 @@ export function CompleteLaagDialog({
             })
 
           if (imageError) throw imageError
+        }
+      }
+
+      // Create notification for completion
+      const { data: createdNotification, error: notificationError } = await supabase
+        .from("laagNotifications")
+        .insert({
+          laag_id: laag.id,
+          laag_status: "Completed",
+          group_id: laag.group_id // Make sure group_id is included in the laag prop type
+        })
+        .select('id')
+        .single();
+
+      if (notificationError) throw notificationError;
+      if (!createdNotification) throw new Error("Failed to create notification");
+
+      // Create notification reads for all valid attendees
+      const validAttendees = values.attendees.filter(Boolean);
+
+      if (validAttendees.length > 0) {
+        const notificationReads = validAttendees.map(attendeeId => ({
+          notification_id: createdNotification.id,
+          user_id: attendeeId,
+          is_read: false
+        }));
+
+        const { error: readsError } = await supabase
+          .from("laagNotificationReads")
+          .insert(notificationReads);
+
+        if (readsError) {
+          console.error("Error creating notification reads:", readsError);
+          // Don't throw here as the laag is already completed
         }
       }
 
@@ -487,4 +523,4 @@ export function CompleteLaagDialog({
       </DialogContent>
     </Dialog>
   )
-} 
+}

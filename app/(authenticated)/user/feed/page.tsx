@@ -108,10 +108,10 @@ export default function PublicFeed() {
 
   // Prepare the main content
   const mainContent = (
-    <>
+    <div className="space-y-6">
       <h1 className="text-3xl font-bold">Public Laags</h1>
       <LaagFeed laags={laags} members={[]} />
-    </>
+    </div>
   )
 
   return (

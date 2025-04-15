@@ -20,6 +20,7 @@ import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { LaagTypeDialog } from "../../../../../components/laags/laag-type-dialog"
+import { GroupMembersCard } from "@/components/groups/group-members-card"
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -328,53 +329,11 @@ export default function GroupFeed() {
 
           {/* Right Sub Content - Sticky */}
           <div className="h-full">
-            <Card className="h-full overflow-hidden">
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Members</span>
-                  <Badge variant="secondary">{group.no_members} total</Badge>
-                </CardTitle>
-                <CardDescription>People who are part of this group</CardDescription>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-5rem)]">
-                <ScrollArea className="h-full pr-4 custom-scrollbar">
-                  <div className="space-y-6">
-                    {/* Owner Section */}
-                    <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Owner</h3>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                        <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
-                        <div>
-                          <p className="font-medium">{group.owner.full_name}</p>
-                          <p className="text-xs text-muted-foreground">Group Owner</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Regular Members */}
-                    {activeMembers.length > 0 && (
-                      <div className="space-y-3">
-                        <h3 className="text-sm font-medium text-muted-foreground">Members</h3>
-                        <div className="grid gap-3">
-                          {activeMembers.map((member) => (
-                            <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                              <MemberAvatar
-                                avatarUrl={member.profile.avatar_url || null}
-                                fullName={member.profile.full_name}
-                              />
-                              <div>
-                                <p className="font-medium">{member.profile.full_name}</p>
-                                <p className="text-xs text-muted-foreground">Member</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
+            <GroupMembersCard 
+              owner={group.owner}
+              members={activeMembers}
+              totalMembers={group.no_members}
+            />
           </div>
         </div>
       </div>

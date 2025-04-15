@@ -9,8 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { createClient } from "@/utils/supabase/client"
 import { format } from "date-fns"
+import { useRouter } from "next/navigation" // Add this import
 
 export function NotificationsDropdown({ userId }: { userId: string }) {
+  const router = useRouter() // Add this
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const supabase = createClient()
@@ -26,11 +28,15 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
           id,
           created_at,
           laag_status,
+          group_id,
+          laag_id,
           group: groups (
+            id,
             group_name
           ),
           laag: laags (
             what,
+            privacy,
             organizer (
               full_name
             )
@@ -77,6 +83,19 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
     };
   }, [userId]);
 
+  const handleNotificationClick = async (notification: any) => {
+    // Mark as read
+    await markAsRead(notification.id);
+
+    // Determine the route based on laag privacy
+    const route = notification.notification.laag.privacy === "public"
+      ? `/user/laags/${notification.notification.laag_id}`
+      : `/user/groups/${notification.notification.group_id}/laags/${notification.notification.laag_id}?from=group`;
+
+    // Navigate to the laag details
+    router.push(route);
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -99,7 +118,7 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
             <DropdownMenuItem
               key={notification.id}
               className={`p-4 ${!notification.is_read ? 'bg-muted/50' : ''}`}
-              onClick={() => markAsRead(notification.id)}
+              onClick={() => handleNotificationClick(notification)}
             >
               <div className="space-y-1">
                 <p className="text-sm">

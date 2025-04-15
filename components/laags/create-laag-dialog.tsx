@@ -189,6 +189,7 @@ export function CreateLaagDialog({
         .insert({
           laag_id: laagId,
           laag_status: values.status,
+          group_id: groupId 
         });
 
       if (notificationError) throw notificationError;

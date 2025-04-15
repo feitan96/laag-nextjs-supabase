@@ -26,6 +26,9 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
           id,
           created_at,
           laag_status,
+          group: groups (
+            group_name
+          ),
           laag: laags (
             what,
             organizer (
@@ -107,6 +110,9 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
                     ? "is planning a new laag:" 
                     : "has completed a laag:"}
                   <span className="font-medium"> {notification.notification.laag.what}</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  in <span className="font-medium">{notification.notification.group.group_name}</span>
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {format(new Date(notification.notification.created_at), "MMM d, yyyy 'at' h:mm a")}

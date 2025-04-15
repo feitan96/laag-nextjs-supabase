@@ -1,7 +1,7 @@
 // components/app/nav-global/nav-global.tsx
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Map, UsersRound, PieChart } from "lucide-react"
 import Image from "next/image"
@@ -31,9 +31,17 @@ const projects = [
 ]
 
 export function NavGlobal() {
-    const { theme } = useTheme()
+  const { theme, systemTheme } = useTheme()
   const router = useRouter()
   const { user, profile } = useAuth()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Don't calculate theme until component is mounted
+  const currentTheme = mounted ? (theme === 'system' ? systemTheme : theme) : undefined
 
   const userDisplayName = useMemo(() => {
     return profile?.username || user?.email
@@ -46,23 +54,31 @@ export function NavGlobal() {
         <div className="flex items-center gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2">
-          <div className="relative h-8 w-8">
-            <Image
-              src="/laag-dark-v1.png"
-              alt="Laag Logo"
-              fill
-              className={`object-contain ${theme === 'dark' ? 'block' : 'hidden'}`}
-              priority
-            />
-            <Image
-              src="/laag-light-mode.png"
-              alt="Laag Logo"
-              fill
-              className={`object-contain ${theme === 'light' ? 'block' : 'hidden'}`}
-              priority
-            />
+            <div className="relative h-8 w-8">
+              {mounted && (
+                <>
+                  <Image
+                    src="/laag-dark-v1.png"
+                    alt="Laag Logo"
+                    fill
+                    className={`object-contain absolute ${
+                      currentTheme === 'dark' ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    priority
+                  />
+                  <Image
+                    src="/laag-light-mode.png"
+                    alt="Laag Logo"
+                    fill
+                    className={`object-contain absolute ${
+                      currentTheme === 'light' ? 'opacity-100' : 'opacity-0'
+                    }`}
+                    priority
+                  />
+                </>
+              )}
+            </div>
           </div>
-        </div>
 
 
           {/* Navigation Links - Hidden on mobile */}

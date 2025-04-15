@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAvatar } from "@/hooks/useAvatar"
@@ -12,13 +11,23 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { toast } from "sonner"
 import { CommentCardProps } from "@/types"
 import { Textarea } from "@/components/ui/textarea"
+import { useEffect, useState } from "react"
 
 export function CommentCard({ comment, onDelete }: CommentCardProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedComment, setEditedComment] = useState(comment.comment)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const supabase = createClient()
   const userAvatarUrl = useAvatar(comment.user?.avatar_url || null)
+
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setCurrentUserId(user?.id || null)
+    }
+    getCurrentUser()
+  }, [supabase])
 
   const handleUpdate = async () => {
     if (!editedComment.trim() || editedComment === comment.comment) {
@@ -72,6 +81,9 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
 
   if (!comment.user) return null
 
+  // Add this check before the dropdown menu
+  const canEditDelete = currentUserId === comment.user_id
+
   return (
     <div className="flex gap-3">
       <Avatar className="h-8 w-8 border">
@@ -94,42 +106,44 @@ export function CommentCard({ comment, onDelete }: CommentCardProps) {
             </div>
           </div>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setIsEditing(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </DropdownMenuItem>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Trash2 className="mr-2 h-4 w-4 text-destructive" />
-                    Delete
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Comment</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this comment? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          {canEditDelete && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0">
+                  <MoreHorizontal className="h-4 w-4" />
+                  <span className="sr-only">More options</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </DropdownMenuItem>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                      <Trash2 className="mr-2 h-4 w-4 text-destructive" />
                       Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                    </DropdownMenuItem>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Comment</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to delete this comment? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
         {isEditing ? (

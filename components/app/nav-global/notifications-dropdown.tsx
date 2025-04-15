@@ -23,7 +23,19 @@ interface NotificationCardProps {
 
 function NotificationCard({ notification, onClick, isUnread }: NotificationCardProps) {
   const organizerAvatarUrl = useAvatar(notification.notification.laag.organizer.avatar_url)
-  //const groupPictureUrl = useGroupPicture(notification.notification.group.group_picture)
+
+  const getNotificationMessage = (status: string) => {
+    switch (status) {
+      case "Planning":
+        return "is planning a new laag:"
+      case "Completed":
+        return "has completed a laag:"
+      case "Cancelled":
+        return "has cancelled the laag:"
+      default:
+        return "has updated the laag:"
+    }
+  }
 
   return (
     <DropdownMenuItem
@@ -43,20 +55,10 @@ function NotificationCard({ notification, onClick, isUnread }: NotificationCardP
             <span className="font-medium">
               {notification.notification.laag.organizer.full_name}
             </span>{" "}
-            {notification.notification.laag_status === "Planning" 
-              ? "is planning a new laag:" 
-              : "has completed a laag:"}
+            {getNotificationMessage(notification.notification.laag_status)}
             <span className="font-medium"> {notification.notification.laag.what}</span>
           </p>
           <div className="flex items-center gap-2">
-            {/* <div className="relative h-4 w-4">
-              <Image
-                src={groupPictureUrl || "/placeholder.svg"}
-                alt={notification.notification.group.group_name}
-                fill
-                className="object-cover rounded"
-              />
-            </div> */}
             <p className="text-xs text-muted-foreground">
               in <span className="font-medium">{notification.notification.group.group_name}</span>
             </p>
@@ -77,26 +79,26 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
   const supabase = createClient()
 
   const fetchNotifications = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("laagNotificationReads")
       .select(`
         id,
         is_read,
         read_at,
-        notification: laagNotifications (
+        notification: laagNotifications!inner (
           id,
           created_at,
           laag_status,
           group_id,
           laag_id,
-          group: groups (
+          group: groups!inner (
             id,
-            group_name,
+            group_name
           ),
-          laag: laags (
+          laag: laags!inner (
             what,
             privacy,
-            organizer (
+            organizer: profiles!inner (
               id,
               full_name,
               avatar_url
@@ -107,6 +109,12 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
+    if (error) {
+      console.error("Error fetching notifications:", error);
+      return;
+    }
+
+    console.log("Fetched notifications:", data);
     setNotifications(data || []);
     setUnreadCount(data?.filter(n => !n.is_read).length || 0);
   };

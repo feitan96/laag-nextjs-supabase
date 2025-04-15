@@ -255,7 +255,9 @@ const commentCount = filteredComments.length;
 
           <Badge variant="outline" className="flex items-center gap-1">
             <Smile className="h-3 w-3" />
-            <span>Fun: {laag.fun_meter}/10</span>
+            <span>
+              Fun: {laag.fun_meter !== null ? `${laag.fun_meter.toFixed(1)}/10` : 'No ratings yet'}
+            </span>
           </Badge>
 
           <Badge variant="outline">
@@ -374,4 +376,4 @@ const commentCount = filteredComments.length;
       </CardFooter>
     </Card>
   )
-} 
+}

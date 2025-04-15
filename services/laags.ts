@@ -1,7 +1,6 @@
 // services/laags.ts
 import { createClient } from "@/utils/supabase/client"
 import { Laag, Member } from "@/types"
-import { Slider } from "@/components/ui/slider"
 
 export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
   const supabase = createClient()
@@ -123,6 +122,45 @@ export const getStatusVariant = (status: string): "outline" | "secondary" | "def
 }
 
 // Add these new functions
+export const calculateAndUpdateAverageFunMeter = async (laagId: string): Promise<number> => {
+  const supabase = createClient()
+  
+  // First get the laag to get the organizer id
+  const { data: laag, error: laagError } = await supabase
+    .from("laags")
+    .select("organizer")
+    .eq("id", laagId)
+    .single()
+
+  if (laagError) throw laagError
+
+  // Get all non-deleted fun meter ratings for this laag
+  const { data: funMeterRatings, error: fetchError } = await supabase
+    .from("laagFunMeter")
+    .select("fun_meter")
+    .eq("laag_id", laagId)
+    .eq("is_deleted", false)
+
+  if (fetchError) throw fetchError
+
+  // Calculate the new fun meter value
+  const newFunMeter = (!funMeterRatings || funMeterRatings.length === 0) 
+    ? null 
+    : funMeterRatings.reduce((acc, curr) => acc + curr.fun_meter, 0) / funMeterRatings.length
+
+  // Update using the organizer's context
+  const { error: updateError } = await supabase.rpc('update_laag_fun_meter', { 
+    p_laag_id: laagId,
+    p_fun_meter: newFunMeter,
+    p_organizer_id: laag.organizer
+  })
+
+  if (updateError) throw updateError
+
+  return newFunMeter || 0
+}
+
+// Modify the existing submitFunMeter function
 export const submitFunMeter = async (laagId: string, groupId: string, funMeter: number): Promise<void> => {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -137,24 +175,57 @@ export const submitFunMeter = async (laagId: string, groupId: string, funMeter: 
   })
 
   if (error) throw error
+
+  // Calculate and update the average after submission
+  await calculateAndUpdateAverageFunMeter(laagId)
 }
 
+// Modify the existing updateFunMeter function
 export const updateFunMeter = async (funMeterId: string, funMeter: number): Promise<void> => {
   const supabase = createClient()
-  const { error } = await supabase
+  
+  // First get the laag_id for this fun meter
+  const { data: funMeterData, error: fetchError } = await supabase
+    .from("laagFunMeter")
+    .select("laag_id")
+    .eq("id", funMeterId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  // Update the fun meter value
+  const { error: updateError } = await supabase
     .from("laagFunMeter")
     .update({ fun_meter: funMeter })
     .eq("id", funMeterId)
 
-  if (error) throw error
+  if (updateError) throw updateError
+
+  // Calculate and update the average
+  await calculateAndUpdateAverageFunMeter(funMeterData.laag_id)
 }
 
+// Modify the existing deleteFunMeter function
 export const deleteFunMeter = async (funMeterId: string): Promise<void> => {
   const supabase = createClient()
-  const { error } = await supabase
+  
+  // First get the laag_id for this fun meter
+  const { data: funMeterData, error: fetchError } = await supabase
+    .from("laagFunMeter")
+    .select("laag_id")
+    .eq("id", funMeterId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  // Mark the fun meter as deleted
+  const { error: updateError } = await supabase
     .from("laagFunMeter")
     .update({ is_deleted: true })
     .eq("id", funMeterId)
 
-  if (error) throw error
+  if (updateError) throw updateError
+
+  // Calculate and update the average
+  await calculateAndUpdateAverageFunMeter(funMeterData.laag_id)
 }

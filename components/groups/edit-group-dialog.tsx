@@ -17,7 +17,7 @@ import { toast } from "sonner"
 import Image from "next/image"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { Users } from "lucide-react"
-import type { Group } from "@/app/(authenticated)/user/groups/group-table"
+import type { Group } from "@/components/groups/group-table"
 
 interface EditGroupModalProps {
   group: Group

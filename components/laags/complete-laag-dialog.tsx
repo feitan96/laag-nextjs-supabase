@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -14,17 +14,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Pencil, Upload, Loader2 } from "lucide-react"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon } from "lucide-react"
+import { Upload, Loader2 } from "lucide-react"
 import { format } from "date-fns"
-import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -34,11 +29,11 @@ const formSchema = z.object({
   where: z.string().min(1, "Where is required"),
   why: z.string().min(1, "Why is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
-  actual_cost: z.string().optional(),
+  actual_cost: z.string().min(1, "Actual cost is required"),
   status: z.string().min(1, "Status is required"),
   when_start: z.date(),
   when_end: z.date(),
-  fun_meter: z.string().min(1, "Fun meter is required"),
+  fun_meter: z.string().optional(),
   images: z.array(z.any()).optional(),
   attendees: z.array(z.string()).min(1, "At least one attendee is required"),
   privacy: z.string().min(1, "Privacy is required"),
@@ -46,7 +41,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
-interface EditLaagDialogProps {
+interface CompleteLaagDialogProps {
   laag: {
     id: string
     what: string
@@ -57,7 +52,7 @@ interface EditLaagDialogProps {
     status: string
     when_start: string
     when_end: string
-    fun_meter: number
+    fun_meter: number | null
     organizer: {
       id: string
       full_name: string
@@ -75,6 +70,7 @@ interface EditLaagDialogProps {
       created_at: string
       is_deleted: boolean
     }[]
+    privacy: string
   }
   members: {
     id: string
@@ -87,26 +83,21 @@ interface EditLaagDialogProps {
     }
   }[]
   onLaagUpdated: () => void
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogProps) {
-  const [open, setOpen] = useState(false)
+export function CompleteLaagDialog({ 
+  laag, 
+  members, 
+  onLaagUpdated,
+  open,
+  onOpenChange
+}: CompleteLaagDialogProps) {
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [existingImages, setExistingImages] = useState((laag.laagImages || []).filter(img => !img.is_deleted))
-  const [isOrganizer, setIsOrganizer] = useState(false)
   const supabase = createClient()
-
-  useEffect(() => {
-    const checkOrganizer = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      setIsOrganizer(user?.id === laag.organizer.id)
-    }
-    checkOrganizer()
-  }, [laag.organizer.id, supabase])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -116,15 +107,13 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       why: laag.why,
       estimated_cost: laag.estimated_cost.toString(),
       actual_cost: laag.actual_cost?.toString() || "",
-      status: laag.status,
+      status: "Completed",
       when_start: new Date(laag.when_start),
       when_end: new Date(laag.when_end),
-      fun_meter: laag.fun_meter.toString(),
+      fun_meter: "",
       images: [],
-      attendees: (laag.laagAttendees || [])
-        .filter(attendee => !attendee.is_removed)
-        .map(attendee => attendee.attendee_id),
-      privacy: "group-only",
+      attendees: members.map(member => member.profile.id),
+      privacy: laag.privacy,
     },
   })
 
@@ -144,33 +133,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
     }
   }
 
-  const removeImage = async (index: number, isExisting: boolean = false) => {
-    if (isExisting) {
-      // Mark existing image as deleted
-      const imageToDelete = existingImages[index]
-      const { error } = await supabase
-        .from("laagImages")
-        .update({ is_deleted: true })
-        .eq("id", imageToDelete.id)
-
-      if (error) {
-        toast.error("Failed to remove image")
-        return
-      }
-
-      setExistingImages(prev => prev.filter((_, i) => i !== index))
-    } else {
-      setUploadedImages(prev => prev.filter((_, i) => i !== index))
-      setImagePreviews(prev => prev.filter((_, i) => i !== index))
-    }
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
   const onSubmit = async (values: FormValues) => {
-    if (!isOrganizer) {
-      toast.error("Only the organizer can edit this laag")
-      return
-    }
-
     setLoading(true)
 
     try {
@@ -183,10 +151,10 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
           why: values.why,
           estimated_cost: parseFloat(values.estimated_cost),
           actual_cost: values.actual_cost ? parseFloat(values.actual_cost) : null,
-          status: values.status,
+          status: "Completed",
           when_start: values.when_start.toISOString(),
           when_end: values.when_end.toISOString(),
-          fun_meter: parseFloat(values.fun_meter),
+          fun_meter: values.fun_meter ? parseFloat(values.fun_meter) : null,
           updated_at: new Date().toISOString(),
           privacy: values.privacy,
         })
@@ -261,28 +229,23 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
         }
       }
 
-      toast.success("Laag updated successfully")
-      setOpen(false)
+      toast.success("Laag completed successfully")
+      onOpenChange(false)
       onLaagUpdated()
     } catch (error) {
-      console.error("Error updating laag:", error)
-      toast.error("Failed to update laag")
+      console.error("Error completing laag:", error)
+      toast.error("Failed to complete laag")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Edit Laag</DialogTitle>
-          <DialogDescription>Update your laag details.</DialogDescription>
+          <DialogTitle>Complete Laag</DialogTitle>
+          <DialogDescription>Mark this laag as completed and add details about how it went.</DialogDescription>
         </DialogHeader>
 
         <ScrollArea className="max-h-[80vh]">
@@ -340,7 +303,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                     <FormItem>
                       <FormLabel>Estimated Cost</FormLabel>
                       <FormControl>
-                        <Input type="number" step="0.01" placeholder="0.00" {...field} />
+                        <Input type="number" step="0.01" placeholder="0.00" {...field} disabled />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -352,7 +315,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   name="actual_cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Actual Cost (Optional)</FormLabel>
+                      <FormLabel>Actual Cost</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" placeholder="0.00" {...field} />
                       </FormControl>
@@ -369,7 +332,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Planning, In Progress, Completed" {...field} />
+                      <Input 
+                        {...field} 
+                        value="Completed"
+                        disabled={true}
+                        className="bg-muted"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -381,39 +349,15 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   control={form.control}
                   name="when_start"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>Start Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date()
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          value={format(field.value, "yyyy-MM-dd")} 
+                          className="bg-muted"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -423,83 +367,26 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   control={form.control}
                   name="when_end"
                   render={({ field }) => (
-                    <FormItem className="flex flex-col">
+                    <FormItem>
                       <FormLabel>End Date</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <FormControl>
-                            <Button
-                              variant="outline"
-                              className={cn(
-                                "w-full pl-3 text-left font-normal",
-                                !field.value && "text-muted-foreground"
-                              )}
-                            >
-                              {field.value ? (
-                                format(field.value, "PPP")
-                              ) : (
-                                <span>Pick a date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={field.value}
-                            onSelect={field.onChange}
-                            disabled={(date) =>
-                              date < new Date()
-                            }
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
+                      <FormControl>
+                        <Input 
+                          type="date" 
+                          value={format(field.value, "yyyy-MM-dd")} 
+                          className="bg-muted"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="fun_meter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Fun Meter (1-10)</FormLabel>
-                    <FormControl>
-                      <Input type="number" min="1" max="10" step="0.1" placeholder="1-10" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <div className="space-y-2">
                 <FormLabel>Images</FormLabel>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  {existingImages.map((image, index) => (
-                    <div key={image.id} className="relative aspect-square">
-                      <Image
-                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/laags/${image.image}`}
-                        alt={`Existing image ${index + 1}`}
-                        fill
-                        className="rounded-lg object-cover"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute right-2 top-2 h-6 w-6"
-                        onClick={() => removeImage(index, true)}
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  ))}
                   {imagePreviews.map((preview, index) => (
-                    <div key={`preview-${index}`} className="relative aspect-square">
+                    <div key={index} className="relative aspect-square">
                       <Image
                         src={preview}
                         alt={`Preview ${index + 1}`}
@@ -533,7 +420,9 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
               <div className="space-y-2">
                 <FormLabel>Attendees</FormLabel>
                 <div className="grid grid-cols-2 gap-4">
-                  {members.map((member) => (
+                  {members.filter((member, index, self) => 
+                    index === self.findIndex((m) => m.profile.id === member.profile.id)
+                  ).map((member) => (
                     <FormField
                       key={member.profile.id}
                       control={form.control}
@@ -584,12 +473,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
               />
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={loading}>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Update Laag
+                  Complete Laag
                 </Button>
               </DialogFooter>
             </form>

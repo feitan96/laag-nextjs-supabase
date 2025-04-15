@@ -10,16 +10,41 @@ import { Users, Edit2, Settings, User2 } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
-import { CreateLaagDialog } from "./create-laag-dialog"
-import { LaagFeed } from "./laag-feed"
-import { EditGroupModal } from "@/components/edit-group-modal"
-import { ManageMembersDialog } from "./manage-members-dialog"
+import { CreateLaagDialog } from "../../../../../components/laags/create-laag-dialog"
+import { LaagFeed } from "../../../../../components/laags/laag-feed"
+import { EditGroupModal } from "@/components/groups/edit-group-dialog"
+import { ManageMembersDialog } from "../../../../../components/laags/manage-members-dialog"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/app/context/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { LaagTypeDialog } from "../../../../../components/laags/laag-type-dialog"
+
+// Custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #d4d4d8;
+    border-radius: 20px;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #a1a1aa;
+  }
+
+  /* Prevent body scrolling */
+  body {
+    overflow: hidden;
+  }
+`
 
 interface Group {
   id: string
@@ -69,6 +94,8 @@ export default function GroupFeed() {
   const supabase = createClient()
   const { user } = useAuth()
   const groupPictureUrl = useGroupPicture(group?.group_picture || null)
+  const [showCreateLaag, setShowCreateLaag] = useState(false)
+  const [laagType, setLaagType] = useState<"planning" | "completed" | null>(null)
 
   const fetchGroup = async () => {
     try {
@@ -132,39 +159,107 @@ export default function GroupFeed() {
     }
   }
 
+  const handleLaagTypeSelect = (type: "planning" | "completed") => {
+    setLaagType(type)
+    setShowCreateLaag(true)
+  }
+
+  const handleLaagCreated = () => {
+    window.location.reload()
+    setShowCreateLaag(false)
+    setLaagType(null)
+  }
+
+  // Add the style tag to the component
+  useEffect(() => {
+    // Add the scrollbar styles to the document
+    const styleElement = document.createElement("style")
+    styleElement.innerHTML = scrollbarStyles
+    document.head.appendChild(styleElement)
+
+    return () => {
+      // Clean up the style element when the component unmounts
+      document.head.removeChild(styleElement)
+    }
+  }, [])
+
   if (loading) {
     return (
-      <div className="container max-w-6xl py-6 space-y-8">
-        <div className="flex items-center gap-4">
-          <Skeleton className="h-20 w-20 rounded-full" />
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-[250px]" />
-            <Skeleton className="h-5 w-[180px]" />
+      <div className="h-screen overflow-hidden">
+        <div className="container max-w-[1200px] py-6 h-full">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+            <div className="md:col-span-2 space-y-8">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-20 w-20 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-[250px]" />
+                  <Skeleton className="h-5 w-[180px]" />
+                </div>
+              </div>
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-6 w-[150px]" />
+                  <Skeleton className="h-9 w-[120px]" />
+                </div>
+                <Skeleton className="h-[400px] w-full rounded-lg" />
+              </div>
+            </div>
+            <div>
+              <Card className="overflow-hidden">
+                <CardHeader>
+                  <Skeleton className="h-6 w-[120px]" />
+                  <Skeleton className="h-4 w-[180px] mt-2" />
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <Skeleton className="h-5 w-[80px]" />
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div>
+                          <Skeleton className="h-5 w-[120px]" />
+                          <Skeleton className="h-4 w-[100px] mt-1" />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <Skeleton className="h-5 w-[80px]" />
+                      <div className="grid gap-3">
+                        {Array.from({ length: 3 }).map((_, i) => (
+                          <div key={i} className="flex items-center gap-3 p-3 rounded-lg border">
+                            <Skeleton className="h-10 w-10 rounded-full" />
+                            <div>
+                              <Skeleton className="h-5 w-[120px]" />
+                              <Skeleton className="h-4 w-[100px] mt-1" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-        <Tabs defaultValue="laags">
-          <TabsList>
-            <Skeleton className="h-10 w-24" />
-            <Skeleton className="h-10 w-24 ml-1" />
-          </TabsList>
-          <div className="mt-6">
-            <Skeleton className="h-[400px] w-full rounded-lg" />
-          </div>
-        </Tabs>
       </div>
     )
   }
 
   if (!group) {
     return (
-      <div className="container max-w-6xl py-12">
-        <div className="flex h-[50vh] items-center justify-center">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle>Group not found</CardTitle>
-              <CardDescription>The group you&apos;re looking for doesn&apos;t exist or has been deleted.</CardDescription>
-            </CardHeader>
-          </Card>
+      <div className="h-screen overflow-hidden">
+        <div className="container max-w-[1200px] py-12 h-full">
+          <div className="flex h-[50vh] items-center justify-center">
+            <Card className="max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle>Group not found</CardTitle>
+                <CardDescription>
+                  The group you&apos;re looking for doesn&apos;t exist or has been deleted.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          </div>
         </div>
       </div>
     )
@@ -174,116 +269,115 @@ export default function GroupFeed() {
   const activeMembers = group.members?.filter((member) => !member.is_removed) || []
 
   return (
-    <div className="container mx-auto max-w-[680px] py-6 space-y-8">
-      {/* Group Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-            {groupPictureUrl ? (
-              <Image
-                src={groupPictureUrl || "/placeholder.svg"}
-                alt={group.group_name}
-                fill
-                className="object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = "/default-group-picture.png"
-                }}
-              />
-            ) : (
-              <Users className="h-10 w-10 text-primary" />
-            )}
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">{group.group_name}</h1>
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <User2 className="h-4 w-4" />
-              <span>{group.no_members} members</span>
-            </div>
-          </div>
-        </div>
-        {isOwner && (
-          <div className="flex items-center gap-2 mt-2 sm:mt-0">
-            <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
-              <Edit2 className="mr-2 h-4 w-4" />
-              Edit Group
-            </Button>
-            <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
-              <Settings className="mr-2 h-4 w-4" />
-              Manage Members
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* Tabs for Laags and Members */}
-      <Tabs defaultValue="laags">
-        <TabsList className="mb-6">
-          <TabsTrigger value="laags">Laags</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="laags" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Group Activities</h2>
-            <CreateLaagDialog
-              groupId={group.id}
-              onLaagCreated={() => window.location.reload()}
-              members={group.members || []}
-            />
-          </div>
-          <LaagFeed groupId={group.id} />
-        </TabsContent>
-
-        <TabsContent value="members">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Members</span>
-                <Badge variant="secondary">{group.no_members} total</Badge>
-              </CardTitle>
-              <CardDescription>People who are part of this group</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px] pr-4">
-                <div className="space-y-6">
-                  {/* Owner Section */}
-                  <div className="space-y-3">
-                    <h3 className="text-sm font-medium text-muted-foreground">Owner</h3>
-                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
-                      <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
-                      <div>
-                        <p className="font-medium">{group.owner.full_name}</p>
-                        <p className="text-xs text-muted-foreground">Group Owner</p>
-                      </div>
+    <div className="h-screen overflow-hidden">
+      <div className="container max-w-[1200px] py-6 h-full">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
+          {/* Left Main Content - Scrollable */}
+          <div className="md:col-span-2 h-full overflow-y-auto custom-scrollbar pr-2">
+            <div className="space-y-8">
+              {/* Group Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                    {groupPictureUrl ? (
+                      <Image
+                        src={groupPictureUrl || "/placeholder.svg"}
+                        alt={group.group_name}
+                        fill
+                        className="object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = "/default-group-picture.png"
+                        }}
+                      />
+                    ) : (
+                      <Users className="h-10 w-10 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold">{group.group_name}</h1>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <User2 className="h-4 w-4" />
+                      <span>{group.no_members} members</span>
                     </div>
                   </div>
+                </div>
+                {isOwner && (
+                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                    <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                      <Edit2 className="mr-2 h-4 w-4" />
+                      Edit Group
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Manage Members
+                    </Button>
+                  </div>
+                )}
+              </div>
 
-                  {/* Regular Members */}
-                  {activeMembers.length > 0 && (
+              {/* Group Feed */}
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold">Group Activities</h2>
+                  <LaagTypeDialog onSelect={handleLaagTypeSelect} />
+                </div>
+                <LaagFeed groupId={group.id} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Sub Content - Sticky */}
+          <div className="h-full">
+            <Card className="h-full overflow-hidden">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Members</span>
+                  <Badge variant="secondary">{group.no_members} total</Badge>
+                </CardTitle>
+                <CardDescription>People who are part of this group</CardDescription>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-5rem)]">
+                <ScrollArea className="h-full pr-4 custom-scrollbar">
+                  <div className="space-y-6">
+                    {/* Owner Section */}
                     <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Members</h3>
-                      <div className="grid gap-3">
-                        {activeMembers.map((member) => (
-                          <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border">
-                            <MemberAvatar
-                              avatarUrl={member.profile.avatar_url || null}
-                              fullName={member.profile.full_name}
-                            />
-                            <div>
-                              <p className="font-medium">{member.profile.full_name}</p>
-                              <p className="text-xs text-muted-foreground">Member</p>
-                            </div>
-                          </div>
-                        ))}
+                      <h3 className="text-sm font-medium text-muted-foreground">Owner</h3>
+                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                        <MemberAvatar avatarUrl={group.owner.avatar_url || null} fullName={group.owner.full_name} />
+                        <div>
+                          <p className="font-medium">{group.owner.full_name}</p>
+                          <p className="text-xs text-muted-foreground">Group Owner</p>
+                        </div>
                       </div>
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+
+                    {/* Regular Members */}
+                    {activeMembers.length > 0 && (
+                      <div className="space-y-3">
+                        <h3 className="text-sm font-medium text-muted-foreground">Members</h3>
+                        <div className="grid gap-3">
+                          {activeMembers.map((member) => (
+                            <div key={member.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                              <MemberAvatar
+                                avatarUrl={member.profile.avatar_url || null}
+                                fullName={member.profile.full_name}
+                              />
+                              <div>
+                                <p className="font-medium">{member.profile.full_name}</p>
+                                <p className="text-xs text-muted-foreground">Member</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
 
       {/* Modals */}
       <EditGroupModal
@@ -300,6 +394,17 @@ export default function GroupFeed() {
         onMembersUpdated={fetchGroup}
         ownerId={group.owner.id}
       />
+
+      {showCreateLaag && laagType && (
+        <CreateLaagDialog
+          groupId={group.id}
+          onLaagCreated={handleLaagCreated}
+          members={group.members || []}
+          status={laagType === "planning" ? "Planning" : "Completed"}
+          open={showCreateLaag}
+          onOpenChange={setShowCreateLaag}
+        />
+      )}
     </div>
   )
 }

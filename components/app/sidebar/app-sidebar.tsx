@@ -4,11 +4,9 @@
 import * as React from "react"
 import {
   AudioWaveform,
-  Baby,
   BookOpen,
   Bot,
   Command,
-  Frame,
   GalleryVerticalEnd,
   Map,
   PieChart,
@@ -17,10 +15,10 @@ import {
   UsersRound,
 } from "lucide-react"
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/app/sidebar/nav-main"
+import { NavProjects } from "@/components/app/sidebar/nav-projects"
+import { NavUser } from "@/components/app/sidebar/nav-user"
+import { TeamSwitcher } from "@/components/app/sidebar/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -69,88 +67,23 @@ const data = {
           url: "#",
         },
       ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
+    }
   ],
   projects: [
+    {
+      name: "Feed",
+      url: "/user/feed",
+      icon: Map,
+    },
     {
       name: "Groups",
       url: "/user/groups",
       icon: UsersRound,
     },
     {
-      name: "Sales & Marketing",
-      url: "#",
+      name: "Dashboard",
+      url: "/dashboard",
       icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
     },
   ],
 }

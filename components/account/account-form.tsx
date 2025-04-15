@@ -29,10 +29,14 @@ export default function AccountForm() {
     try {
       setLoading(true)
 
+      if (!user?.id) {
+        throw new Error("User ID is undefined")
+      }
+
       const { data, error, status } = await supabase
         .from("profiles")
         .select(`full_name, username, website, avatar_url`)
-        .eq("id", user?.id)
+        .eq("id", user.id)
         .single()
 
         if (error && status !== 406) {
@@ -47,7 +51,7 @@ export default function AccountForm() {
         setAvatarUrl(data.avatar_url)
       }
     } catch (error) {
-      toast.error("Failed to load profile data")
+      toast.error("Failed to load profile data: " + error)
     } finally {
       setLoading(false)
     }
@@ -61,8 +65,12 @@ export default function AccountForm() {
     try {
       setUpdating(true)
 
+      if (!user?.id) {
+        throw new Error("User ID is undefined")
+      }
+
       const { error } = await supabase.from("profiles").upsert({
-        id: user?.id as string,
+        id: user.id,
         full_name: fullname,
         username,
         website,
@@ -73,8 +81,9 @@ export default function AccountForm() {
       if (error) throw error
 
       toast.success("Profile updated successfully")
+      window.location.reload()
     } catch (error) {
-      toast.error("Failed to update profile")
+      toast.error("Failed to update profile: " + error)
     } finally {
       setUpdating(false)
     }

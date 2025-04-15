@@ -183,6 +183,36 @@ export function CreateLaagDialog({
         }
       }
 
+      // After successful laag creation, create notification
+      const { error: notificationError } = await supabase
+        .from("laagNotifications")
+        .insert({
+          laag_id: laagId,
+          laag_status: values.status,
+        });
+
+      if (notificationError) throw notificationError;
+
+      // Get the created notification
+      const { data: notification } = await supabase
+        .from("laagNotifications")
+        .select("id")
+        .eq("laag_id", laagId)
+        .single();
+
+      // Create notification reads for all attendees
+      const notificationReads = values.attendees.map(attendeeId => ({
+        notification_id: notification.id,
+        user_id: attendeeId,
+        is_read: false
+      }));
+
+      const { error: readsError } = await supabase
+        .from("laagNotificationReads")
+        .insert(notificationReads);
+
+      if (readsError) throw readsError;
+
       toast.success("Laag created successfully")
       form.reset()
       setUploadedImages([])
@@ -502,4 +532,4 @@ export function CreateLaagDialog({
       </DialogContent>
     </Dialog>
   )
-} 
+}

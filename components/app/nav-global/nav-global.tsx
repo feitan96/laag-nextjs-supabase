@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { Map, UsersRound, PieChart } from "lucide-react"
 import Image from "next/image"
 import { useTheme } from "next-themes" // Add this import
+import { NotificationsDropdown } from "./notifications-dropdown"
 
 
 import { NavUser } from "../sidebar/nav-user"
@@ -99,6 +100,7 @@ export function NavGlobal() {
 
         {/* Right section - User Menu */}
         <div className="flex items-center gap-2">
+          {user && <NotificationsDropdown userId={user.id} />}
           <NavUser />
         </div>
       </div>

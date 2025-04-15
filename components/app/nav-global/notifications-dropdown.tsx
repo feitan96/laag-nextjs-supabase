@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation"
 import { useAvatar } from "@/hooks/useAvatar"
 // import { useGroupPicture } from "@/hooks/useGroupPicture"
 // import Image from "next/image"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface NotificationCardProps {
   notification: any;
@@ -76,6 +77,7 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
   const router = useRouter()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [displayCount, setDisplayCount] = useState(5)
   const supabase = createClient()
 
   const fetchNotifications = async () => {
@@ -165,6 +167,13 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
     router.push(route);
   };
 
+  const handleShowMore = () => {
+    setDisplayCount(prev => prev + 10)
+  }
+
+  const visibleNotifications = notifications.slice(0, displayCount)
+  const hasMoreNotifications = notifications.length > displayCount
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -178,21 +187,36 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
-        {notifications.length === 0 ? (
-          <div className="p-4 text-center text-sm text-muted-foreground">
-            No notifications
-          </div>
-        ) : (
-          notifications.map((notification) => (
-            <NotificationCard
-              key={notification.id}
-              notification={notification}
-              onClick={() => handleNotificationClick(notification)}
-              isUnread={!notification.is_read}
-            />
-          ))
-        )}
+        <ScrollArea className="h-[32rem] w-full">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No notifications
+            </div>
+          ) : (
+            <>
+              {visibleNotifications.map((notification) => (
+                <NotificationCard
+                  key={notification.id}
+                  notification={notification}
+                  onClick={() => handleNotificationClick(notification)}
+                  isUnread={!notification.is_read}
+                />
+              ))}
+              {hasMoreNotifications && (
+                <div 
+                  className="p-2 text-center text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleShowMore()
+                  }}
+                >
+                  Show more notifications
+                </div>
+              )}
+            </>
+          )}
+        </ScrollArea>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
+  )
 }

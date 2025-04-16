@@ -56,7 +56,7 @@ export function FeedLayout({ leftSidebar, mainContent, rightSidebar }: FeedLayou
           </div>
 
           {/* Center Main Content - Scrollable */}
-          <div className="h-full overflow-y-auto custom-scrollbar w-[632px] pt-4 pb-10">
+          <div className="h-full overflow-y-auto custom-scrollbar w-[632px] pt-4 pb-16">
             <div className="space-y-6 w-full">{mainContent}</div>
           </div>
 

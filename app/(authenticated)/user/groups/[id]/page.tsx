@@ -274,7 +274,7 @@ export default function GroupFeed() {
       <div className="container max-w-[1200px] py-6 h-full">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-full">
           {/* Left Main Content - Scrollable */}
-          <div className="md:col-span-2 h-full overflow-y-auto custom-scrollbar pr-2 pb-10">
+          <div className="md:col-span-2 h-full overflow-y-auto custom-scrollbar pr-2 pb-16">
             <div className="space-y-8">
               {/* Group Header */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

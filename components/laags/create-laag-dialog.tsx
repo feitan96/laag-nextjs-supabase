@@ -28,11 +28,13 @@ import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Checkbox } from "@/components/ui/checkbox"
+import { LAAG_TYPES } from "@/constants/laag-types"
 
 const formSchema = z.object({
   what: z.string().min(1, "What is required"),
   where: z.string().min(1, "Where is required"),
   why: z.string().min(1, "Why is required"),
+  type: z.string().min(1, "Type is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
   actual_cost: z.string().optional(),
   status: z.enum(["Planning", "Completed", "Cancelled"]),
@@ -83,6 +85,7 @@ export function CreateLaagDialog({
       what: "",
       where: "",
       why: "",
+      type: "",
       estimated_cost: "",
       actual_cost: "",
       status: status,
@@ -133,6 +136,7 @@ export function CreateLaagDialog({
         what: values.what,
         where: values.where,
         why: values.why,
+        type: values.type,
         estimated_cost: parseFloat(values.estimated_cost),
         actual_cost: values.actual_cost ? parseFloat(values.actual_cost) : null,
         status: values.status,
@@ -240,7 +244,7 @@ export function CreateLaagDialog({
           Create Laag
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Laag</DialogTitle>
           <DialogDescription>Plan your next adventure with your group.</DialogDescription>
@@ -324,24 +328,50 @@ export function CreateLaagDialog({
               )}
             </div>
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      value={status}
-                      disabled={true}
-                      className="bg-muted"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        value={status}
+                        disabled={true}
+                        className="bg-muted"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <FormControl>
+                      <select
+                        {...field}
+                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">Select type</option>
+                        {LAAG_TYPES.map((type) => (
+                          <option key={type.value} value={type.value}>
+                            {type.label}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField

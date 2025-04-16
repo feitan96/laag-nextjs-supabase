@@ -8,6 +8,7 @@ export const fetchLaags = async (groupId: string): Promise<Laag[]> => {
     .from("laags")
     .select(`
       *,
+      type,
       organizer:profiles!organizer(id, full_name, avatar_url),
       laagImages(*),
       laagAttendees(

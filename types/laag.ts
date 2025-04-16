@@ -50,11 +50,33 @@ export interface LaagImage {
     }
   }
 
+  // Add this new type definition
+  export type LaagType = 
+    | 'Birthday Celebration'
+    | 'Summer Vacation'
+    | 'Weekend Getaway'
+    | 'Road Trip'
+    | 'Beach Outing'
+    | 'Hiking Adventure'
+    | 'Food Trip'
+    | 'Game Night'
+    | 'Movie Marathon'
+    | 'Study Session'
+    | 'Sports Activity'
+    | 'Concert/Festival'
+    | 'Holiday Celebration'
+    | 'Reunion'
+    | 'Shopping Trip'
+    | 'Staycation'
+    | 'Other'
+  
+  // Update the Laag interface
   export interface Laag {
     id: string
     what: string
     where: string
     why: string
+    type: LaagType
     estimated_cost: number
     actual_cost: number | null
     status: string

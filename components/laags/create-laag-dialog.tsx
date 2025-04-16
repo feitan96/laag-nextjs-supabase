@@ -258,9 +258,9 @@ export function CreateLaagDialog({
                 name="what"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>What</FormLabel>
+                    <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="What are you planning?" {...field} />
+                      <Input placeholder="Unsa ni nga laag?" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -272,9 +272,9 @@ export function CreateLaagDialog({
                 name="where"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Where</FormLabel>
+                    <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="Where will it happen?" {...field} />
+                      <Input placeholder="Asa naman pud ni?" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -287,9 +287,9 @@ export function CreateLaagDialog({
               name="why"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>More Details</FormLabel>
+                  <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Why are you planning this?" {...field} />
+                    <Textarea placeholder="Chika pa daw about ani nga laag!" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

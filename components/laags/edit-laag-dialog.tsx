@@ -293,7 +293,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   name="what"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>What</FormLabel>
+                      <FormLabel>Title</FormLabel>
                       <FormControl>
                         <Input placeholder="What are you planning?" {...field} />
                       </FormControl>
@@ -307,7 +307,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   name="where"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Where</FormLabel>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
                         <Input placeholder="Where will it happen?" {...field} />
                       </FormControl>
@@ -322,9 +322,9 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                 name="why"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Why</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Why are you planning this?" {...field} />
+                      <Textarea placeholder="What are some more details about this laag?" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

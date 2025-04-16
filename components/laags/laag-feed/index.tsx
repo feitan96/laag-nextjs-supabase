@@ -11,9 +11,14 @@ import { X, Search } from "lucide-react"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
 
+// Add import for LAAG_TYPES
+import { LAAG_TYPES } from "@/constants/laag-types"
+
+// Add TypeFilter type
 type SortOption = "created_at-desc" | "created_at-asc" | "actual_cost-desc" | "actual_cost-asc"
 type StatusFilter = "Planning" | "Completed" | "Cancelled" | "All"
 type PrivacyFilter = "public" | "group-only" | "All"
+type TypeFilter = "All" | string // Add this line
 
 export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers }: LaagFeedProps) {
   // Use the hook only if groupId is provided
@@ -28,6 +33,7 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
   const [sortBy, setSortBy] = useState<SortOption>("created_at-desc")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("All")
   const [privacyFilter, setPrivacyFilter] = useState<PrivacyFilter>("All")
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("All") // Add this line
   const searchParams = useSearchParams()
   const searchQuery = searchParams.get("q")?.toLowerCase()
 
@@ -38,6 +44,14 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
   // Only show status and privacy filters for group feeds
   const showAllFilters = !!groupId
 
+  // Update clearFilters function
+  const clearFilters = () => {
+    setStatusFilter("All")
+    setPrivacyFilter("All")
+    setTypeFilter("All") // Add this line
+  }
+
+  // Update filteredLaags to include type filter
   const filteredLaags = laags
     ?.filter(laag => {
       // Apply search filter
@@ -52,6 +66,7 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
       if (showAllFilters) {
         if (statusFilter !== "All" && laag.status !== statusFilter) return false
         if (privacyFilter !== "All" && laag.privacy !== privacyFilter) return false
+        if (typeFilter !== "All" && laag.type !== typeFilter) return false // Add this line
       }
       return true
     })
@@ -71,11 +86,6 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
       }
     })
 
-  const clearFilters = () => {
-    setStatusFilter("All")
-    setPrivacyFilter("All")
-    // Note: We don't clear the search query here as it's managed by the nav-global component
-  }
 
   if (loading) {
     return (
@@ -137,6 +147,20 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
 
           {showAllFilters && (
             <>
+              <Select value={typeFilter} onValueChange={(value: TypeFilter) => setTypeFilter(value)}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Filter by type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All types</SelectItem>
+                  {LAAG_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      {type.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <Select value={statusFilter} onValueChange={(value: StatusFilter) => setStatusFilter(value)}>
                 <SelectTrigger className="w-[150px]">
                   <SelectValue placeholder="Filter by status" />
@@ -160,7 +184,7 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
                 </SelectContent>
               </Select>
 
-              {(statusFilter !== "All" || privacyFilter !== "All") && (
+              {(statusFilter !== "All" || privacyFilter !== "All" || typeFilter !== "All") && (
                 <Button variant="ghost" onClick={clearFilters} className="h-8 px-2">
                   <X className="h-4 w-4 mr-1" />
                   Clear filters

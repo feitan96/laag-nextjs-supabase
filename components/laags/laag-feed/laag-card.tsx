@@ -350,43 +350,43 @@ const commentCount = filteredComments.length;
           )}
         </div>
         {isAttendee && laag.status.toLowerCase() === "completed" && (
-    <div className="w-full">
-      <Button
-        variant="outline"
-        onClick={() => setShowFunMeter(true)}
-        className="w-full"
-      >
-        {userFunMeter ? "Edit your fun meter" : "Rate your experience"}
-      </Button>
-
-      <AlertDialog open={showFunMeter} onOpenChange={setShowFunMeter}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Rate your experience</AlertDialogTitle>
-            <AlertDialogDescription>
-              How fun was this laag? Rate from 0 to 10
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-6">
-            <Slider
-              value={[funMeterValue]}
-              onValueChange={(value) => setFunMeterValue(value[0])}
-              max={10}
-              step={0.1}
+          <div className="w-full">
+            <Button
+              variant="outline"
+              onClick={() => setShowFunMeter(true)}
               className="w-full"
-            />
-            <p className="text-center mt-2">Rating: {funMeterValue.toFixed(1)}</p>
+            >
+              {userFunMeter ? "Edit your fun meter" : "Rate your experience"}
+            </Button>
+
+            <AlertDialog open={showFunMeter} onOpenChange={setShowFunMeter}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Rate your experience</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    How fun was this laag? Rate from 0 to 10
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="py-6">
+                  <Slider
+                    value={[funMeterValue]}
+                    onValueChange={(value) => setFunMeterValue(value[0])}
+                    max={10}
+                    step={0.1}
+                    className="w-full"
+                  />
+                  <p className="text-center mt-2">Rating: {funMeterValue.toFixed(1)}</p>
+                </div>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleFunMeterSubmit}>
+                    Submit
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleFunMeterSubmit}>
-              Submit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )}
+        )}
       </CardFooter>
     </Card>
   )

@@ -123,7 +123,7 @@ export function GroupsCard({ userGroups }: MyGroupsCardProps) {
             ) : (
               <>
                 <div className="flex justify-end">
-                  <NewGroupDialog />
+                  <NewGroupDialog className="w-full" />
                 </div>
                 <div className="space-y-3">
                   {visibleGroups.map((group) => (

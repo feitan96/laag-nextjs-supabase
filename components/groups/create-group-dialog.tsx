@@ -48,7 +48,7 @@ interface Profile {
   avatar_url?: string | null
 }
 
-export function NewGroupDialog() {
+export function NewGroupDialog({ className }: { className?: string }) {
   const [open, setOpen] = useState(false)
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [loading, setLoading] = useState(false)
@@ -222,9 +222,9 @@ export function NewGroupDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm">
+        <Button size="sm" className={className}>
           <Plus className="mr-2 h-4 w-4" />
-          New Group
+          Create Group
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

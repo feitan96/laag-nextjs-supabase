@@ -140,9 +140,21 @@ export function GroupsCard({ userGroups }: MyGroupsCardProps) {
                   </Button>
                 )}
                 {searchQuery && filteredGroups.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground py-4">
-                    No groups found matching &quot;{searchQuery}&quot;
-                  </p>
+                  <div className="flex flex-col items-center justify-center h-full py-8">
+                    <div className="relative w-48 h-48 mb-4">
+                      <Image
+                        src="/no-group-laag.svg"
+                        alt="No users available"
+                        fill
+                        className="object-contain"
+                      />
+                    </div>
+                    <div className="text-center py-8">
+                      <p className="text-center text-sm text-muted-foreground py-4">
+                        No groups found matching &quot;{searchQuery}&quot;
+                      </p>
+                    </div>
+                  </div>
                 )}
               </>
             )}

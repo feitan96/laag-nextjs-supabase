@@ -244,25 +244,39 @@ const commentCount = filteredComments.length;
 
       <CardFooter className="flex flex-col gap-4 pt-4">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant={getStatusVariant(laag.status)}>{laag.status}</Badge>
-
-          <Badge variant="outline" className="flex items-center gap-1">
-            <CalendarRange className="h-3 w-3" />
-            <span>
-              {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
-            </span>
+          <Badge variant={getStatusVariant(laag.status)}>
+            {laag.status.toLowerCase() === "cancelled" ? "Drawing" : laag.status}
           </Badge>
 
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Smile className="h-3 w-3" />
-            <span>
-              Fun: {laag.fun_meter !== null ? `${laag.fun_meter.toFixed(1)}/10` : 'No ratings yet'}
-            </span>
-          </Badge>
+          {laag.status.toLowerCase() !== "cancelled" && (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <CalendarRange className="h-3 w-3" />
+              <span>
+                {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
+              </span>
+            </Badge>
+          )}
 
-          <Badge variant="outline">
-            {laag.privacy === "public" ? "Public" : "Group Only"}
-          </Badge>
+          {laag.status.toLowerCase() === "completed" && (
+            <>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Smile className="h-3 w-3" />
+                <span>
+                  Fun: {laag.fun_meter !== null ? `${laag.fun_meter.toFixed(1)}/10` : 'No ratings yet'}
+                </span>
+              </Badge>
+
+              <Badge variant="outline">
+                {laag.privacy === "public" ? "Public" : "Group Only"}
+              </Badge>
+            </>
+          )}
+
+          {laag.status.toLowerCase() === "ongoing" && (
+            <Badge variant="outline">
+              {laag.privacy === "public" ? "Public" : "Group Only"}
+            </Badge>
+          )}
         </div>
 
         <div className="w-full space-y-4">

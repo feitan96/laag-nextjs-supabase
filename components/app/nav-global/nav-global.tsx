@@ -24,11 +24,11 @@ const projects = [
     url: "/user/groups",
     icon: UsersRound,
   },
-  {
-    name: "Dashboard",
-    url: "/dashboard",
-    icon: PieChart,
-  },
+  // {
+  //   name: "Dashboard",
+  //   url: "/dashboard",
+  //   icon: PieChart,
+  // },
 ]
 
 export function NavGlobal() {

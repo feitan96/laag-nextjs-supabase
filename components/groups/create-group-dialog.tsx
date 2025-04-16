@@ -141,25 +141,26 @@ export function NewGroupDialog() {
 
     setLoading(true)
 
+    // Inside onSubmit function
     try {
       const groupId = uuidv4()
       let groupPicturePath = null
-
+    
       // Upload image if provided
       if (uploadedImage) {
         const fileExt = uploadedImage.name.split(".").pop()
         const filePath = `${groupId}.${fileExt}`
-
+    
         const { error: uploadError } = await supabase.storage.from("group").upload(filePath, uploadedImage)
-
+    
         if (uploadError) {
           throw uploadError
         }
-
+    
         groupPicturePath = filePath
       }
-
-      // Create the group
+    
+      // Create the group first
       const { error: groupError } = await supabase.from("groups").insert({
         id: groupId,
         group_name: values.group_name,
@@ -167,12 +168,24 @@ export function NewGroupDialog() {
         no_members: values.members.length + 1, // +1 for the owner
         owner: currentUser.id,
       })
-
+    
       if (groupError) {
         throw groupError
       }
-
-      // Add group members
+    
+      // Then add the owner as a group member
+      const { error: ownerMemberError } = await supabase.from("groupMembers").insert({
+        id: uuidv4(),
+        group_id: groupId,
+        group_member: currentUser.id,
+        is_removed: false,
+      })
+    
+      if (ownerMemberError) {
+        throw ownerMemberError
+      }
+    
+      // Finally add other group members if any
       if (values.members.length > 0) {
         const groupMembers = values.members.map((memberId) => ({
           id: uuidv4(),
@@ -180,9 +193,9 @@ export function NewGroupDialog() {
           group_member: memberId,
           is_removed: false,
         }))
-
+    
         const { error: membersError } = await supabase.from("groupMembers").insert(groupMembers)
-
+    
         if (membersError) {
           throw membersError
         }

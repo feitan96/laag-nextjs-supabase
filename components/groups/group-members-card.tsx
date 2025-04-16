@@ -47,8 +47,9 @@ export function GroupMembersCard({ owner, members, totalMembers }: GroupMembersC
   const [searchQuery, setSearchQuery] = useState("")
   const [displayCount, setDisplayCount] = useState(5)
 
-  // Filter members based on search query
+  // Filter members based on search query and exclude owner
   const filteredMembers = members.filter(member => 
+    member.profile.id !== owner.id && // Exclude owner
     member.profile.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 

@@ -174,6 +174,26 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
   const visibleNotifications = notifications.slice(0, displayCount)
   const hasMoreNotifications = notifications.length > displayCount
 
+  // Add this new function inside NotificationsDropdown component
+  const markAllAsRead = async () => {
+    try {
+      const { error } = await supabase
+        .from("laagNotificationReads")
+        .update({
+          is_read: true,
+          read_at: new Date().toISOString()
+        })
+        .eq("user_id", userId)
+        .eq("is_read", false);
+
+      if (error) throw error;
+      
+      fetchNotifications();
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+    }
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -187,11 +207,33 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-80">
+        {unreadCount > 0 && (
+          <div 
+            className="p-2 text-center text-sm text-muted-foreground hover:text-foreground cursor-pointer border-b"
+            onClick={(e) => {
+              e.preventDefault()
+              markAllAsRead()
+            }}
+          >
+            Mark all as read
+          </div>
+        )}
         <ScrollArea className="h-[32rem] w-full">
           {notifications.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">
-              No notifications
-            </div>
+            <div className="flex flex-col items-center justify-center h-full py-8">
+              <div className="relative w-48 h-48 mb-4">
+                <Image
+                  src="/no-notifications.svg"
+                  alt="No notifications available"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+              <div className="p-4 text-center text-sm text-muted-foreground">
+                No notifications
+              </div>
+          </div>
+            
           ) : (
             <>
               {visibleNotifications.map((notification) => (

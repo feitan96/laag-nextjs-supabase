@@ -116,16 +116,17 @@ export function CreateLaagDialog({
     setImagePreviews(prev => prev.filter((_, i) => i !== index))
   }
 
+  // In the onSubmit function, modify the attendees section to include the organizer
   const onSubmit = async (values: FormValues) => {
     setLoading(true)
-
+  
     try {
       // Get current user
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("No authenticated user")
-
+  
       const laagId = uuidv4()
-
+  
       // Create the laag first
       const { error: laagError } = await supabase.from("laags").insert({
         id: laagId,
@@ -142,35 +143,38 @@ export function CreateLaagDialog({
         group_id: groupId,
         privacy: values.privacy,
       })
-
+  
       if (laagError) throw laagError
-
+  
+      // Include organizer in attendees if not already included
+      const allAttendees = new Set([...values.attendees, user.id])
+  
       // Create laag attendees
       const { error: attendeesError } = await supabase
         .from("laagAttendees")
         .insert(
-          values.attendees.map(attendeeId => ({
+          Array.from(allAttendees).map(attendeeId => ({
             laag_id: laagId,
             attendee_id: attendeeId,
             is_removed: false
           }))
         )
-
+  
       if (attendeesError) throw attendeesError
-
+  
       // Then upload and insert images if any
       if (uploadedImages.length > 0) {
         for (const image of uploadedImages) {
           const fileExt = image.name.split(".").pop()
           const filePath = `${laagId}/${uuidv4()}.${fileExt}`
-
+  
           // Upload to storage bucket
           const { error: uploadError } = await supabase.storage
             .from("laags")
             .upload(filePath, image)
-
+  
           if (uploadError) throw uploadError
-
+  
           // Store in laagImages table
           const { error: imageError } = await supabase
             .from("laagImages")
@@ -178,11 +182,11 @@ export function CreateLaagDialog({
               laag_id: laagId,
               image: filePath
             })
-
+  
           if (imageError) throw imageError
         }
       }
-
+  
       // After successful laag creation, create notification
       const { error: notificationError } = await supabase
         .from("laagNotifications")
@@ -191,29 +195,29 @@ export function CreateLaagDialog({
           laag_status: values.status,
           group_id: groupId 
         });
-
+  
       if (notificationError) throw notificationError;
-
+  
       // Get the created notification
       const { data: notification } = await supabase
         .from("laagNotifications")
         .select("id")
         .eq("laag_id", laagId)
         .single();
-
-      // Create notification reads for all attendees
-      const notificationReads = values.attendees.map(attendeeId => ({
+  
+      // Create notification reads for all attendees including organizer
+      const notificationReads = Array.from(allAttendees).map(attendeeId => ({
         notification_id: notification.id,
         user_id: attendeeId,
-        is_read: false
+        is_read: attendeeId === user.id // Mark as read for organizer
       }));
-
+  
       const { error: readsError } = await supabase
         .from("laagNotificationReads")
         .insert(notificationReads);
-
+  
       if (readsError) throw readsError;
-
+  
       toast.success("Laag created successfully")
       form.reset()
       setUploadedImages([])

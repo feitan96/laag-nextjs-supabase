@@ -33,7 +33,7 @@ import { LAAG_TYPES } from "@/constants/laag-types"
 const formSchema = z.object({
   what: z.string().min(1, "What is required"),
   where: z.string().min(1, "Where is required"),
-  why: z.string().min(1, "Why is required"),
+  why: z.string().optional(),
   type: z.string().min(1, "Type is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
   actual_cost: z.string().optional(),
@@ -287,7 +287,7 @@ export function CreateLaagDialog({
               name="why"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Why</FormLabel>
+                  <FormLabel>More Details</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Why are you planning this?" {...field} />
                   </FormControl>
@@ -317,7 +317,7 @@ export function CreateLaagDialog({
                   name="actual_cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Actual Cost (Optional)</FormLabel>
+                      <FormLabel>Actual Cost</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" placeholder="0.00" {...field} />
                       </FormControl>

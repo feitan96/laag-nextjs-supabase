@@ -277,47 +277,49 @@ export default function GroupFeed() {
           <div className="md:col-span-2 h-full overflow-y-auto custom-scrollbar pr-2 pb-16">
             <div className="space-y-8">
               {/* Group Header */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
-                    {groupPictureUrl ? (
-                      <Image
-                        src={groupPictureUrl || "/placeholder.svg"}
-                        alt={group.group_name}
-                        fill
-                        className="object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = "/default-group-picture.png"
-                        }}
-                      />
-                    ) : (
-                      <Users className="h-10 w-10 text-primary" />
-                    )}
-                  </div>
-                  <div>
-                    <h1 className="text-3xl font-bold">{group.group_name}</h1>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <User2 className="h-4 w-4" />
-                      <span>{group.no_members} members</span>
+              <div className="max-w-[640px] mx-auto">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="relative h-20 w-20 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center">
+                      {groupPictureUrl ? (
+                        <Image
+                          src={groupPictureUrl || "/placeholder.svg"}
+                          alt={group.group_name}
+                          fill
+                          className="object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = "/default-group-picture.png"
+                          }}
+                        />
+                      ) : (
+                        <Users className="h-10 w-10 text-primary" />
+                      )}
+                    </div>
+                    <div>
+                      <h1 className="text-3xl font-bold">{group.group_name}</h1>
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <User2 className="h-4 w-4" />
+                        <span>{group.no_members} members</span>
+                      </div>
                     </div>
                   </div>
+                  {isOwner && (
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                      <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
+                        <Edit2 className="mr-2 h-4 w-4" />
+                        Edit Group
+                      </Button>
+                      <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
+                        <Settings className="mr-2 h-4 w-4" />
+                        Manage Members
+                      </Button>
+                    </div>
+                  )}
                 </div>
-                {isOwner && (
-                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                    <Button variant="outline" onClick={() => setIsEditModalOpen(true)}>
-                      <Edit2 className="mr-2 h-4 w-4" />
-                      Edit Group
-                    </Button>
-                    <Button variant="outline" onClick={() => setIsManageMembersOpen(true)}>
-                      <Settings className="mr-2 h-4 w-4" />
-                      Manage Members
-                    </Button>
-                  </div>
-                )}
               </div>
 
               {/* Group Feed */}
-              <div className="space-y-6">
+              <div className="space-y-6 max-w-[640px] mx-auto">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-semibold">Group Activities</h2>
                   <LaagTypeDialog onSelect={handleLaagTypeSelect} />

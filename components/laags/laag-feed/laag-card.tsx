@@ -204,19 +204,16 @@ const commentCount = filteredComments.length;
       <CardContent className="pb-0">
         <h3 className="text-xl font-semibold mb-2">{laag.what}</h3>
         
-        {/* Add this line to display the type */}
-        <p className="text-sm text-muted-foreground mb-2">{laag.type}</p>
-      
         <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
           <MapPin className="h-4 w-4 flex-shrink-0" />
           <span>{laag.where}</span>
         </div>
       
-        {laag.why && (
+        {/* {laag.why && (
           <div className="mb-4">
             <p className="whitespace-pre-wrap text-sm">{laag.why}</p>
           </div>
-        )}
+        )} */}
 
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="rounded-lg bg-muted/50 p-3 flex items-center gap-2">
@@ -252,12 +249,19 @@ const commentCount = filteredComments.length;
           </Badge>
 
           {laag.status.toLowerCase() !== "cancelled" && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <CalendarRange className="h-3 w-3" />
-              <span>
-                {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
-              </span>
-            </Badge>
+            <>
+              <Badge variant="outline" className="flex items-center gap-1">
+                <CalendarRange className="h-3 w-3" />
+                <span>
+                  {format(new Date(laag.when_start), "MMM d")} - {format(new Date(laag.when_end), "MMM d")}
+                </span>
+              </Badge>
+
+              {/* Add type badge here */}
+              <Badge variant="outline">
+                {laag.type}
+              </Badge>
+            </>
           )}
 
           {laag.status.toLowerCase() === "completed" && (

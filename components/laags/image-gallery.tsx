@@ -8,6 +8,7 @@ import type { ImageGalleryProps } from "@/types"
 import { LaagImage } from "./laag-image"
 import { useLaagImage } from "@/hooks/useLaagImage"
 import { ChevronLeft, ChevronRight, X } from "lucide-react"
+import { DialogTitle } from "@/components/ui/dialog"
 
 function ImageViewer({ imagePath }: { imagePath: string }) {
   const imageUrl = useLaagImage(imagePath)
@@ -98,6 +99,8 @@ export function ImageGallery({ images }: ImageGalleryProps) {
 
       <Dialog open={selectedImageIndex !== null} onOpenChange={(open) => !open && setSelectedImageIndex(null)}>
         <DialogContent className="max-w-none w-[85vw] max-h-[85vh] h-[85vh] p-0 bg-black/95 backdrop-blur-sm border-none sm:max-w-none md:max-w-none lg:max-w-none xl:max-w-none 2xl:max-w-none">
+          <DialogTitle className="sr-only">Image Viewer</DialogTitle>
+          
           <Button
             variant="ghost"
             size="icon"

@@ -19,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Upload, Loader2 } from "lucide-react"
@@ -31,6 +31,12 @@ import { cn } from "@/lib/utils"
 import Image from "next/image"
 import { Checkbox } from "@/components/ui/checkbox"
 import { LAAG_TYPES } from "@/constants/laag-types"
+
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Check, ChevronsUpDown, User } from "lucide-react"
+import { useAvatar } from "@/hooks/useAvatar"
 
 const formSchema = z.object({
   what: z.string().min(1, "What is required").max(25, "Title cannot exceed 25 characters"),
@@ -68,6 +74,16 @@ interface CreateLaagDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null, fullName: string }) {
+  const memberAvatarUrl = useAvatar(avatarUrl)
+  return (
+    <Avatar className="h-8 w-8">
+      <AvatarImage src={memberAvatarUrl || undefined} />
+      <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
 export function CreateLaagDialog({
   groupId,
   onLaagCreated,
@@ -79,6 +95,7 @@ export function CreateLaagDialog({
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [commandOpen, setCommandOpen] = useState(false)
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -500,38 +517,79 @@ export function CreateLaagDialog({
               </div>
             )}
 
-            <div className="space-y-2">
-              <FormLabel>Attendees</FormLabel>
-              <div className="grid grid-cols-2 gap-4">
-                {members
-                  .filter((member, index, self) => index === self.findIndex((m) => m.profile.id === member.profile.id))
-                  .map((member) => (
-                    <FormField
-                      key={member.profile.id}
-                      control={form.control}
-                      name="attendees"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(member.profile.id)}
-                              onCheckedChange={(checked) => {
-                                const currentValue = field.value || []
-                                if (checked) {
-                                  field.onChange([...currentValue, member.profile.id])
-                                } else {
-                                  field.onChange(currentValue.filter((id) => id !== member.profile.id))
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">{member.profile.full_name}</FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-              </div>
-            </div>
+<FormField
+              control={form.control}
+              name="attendees"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Attendees</FormLabel>
+                  <FormDescription>Select members to join this laag.</FormDescription>
+                  <div className="mt-2">
+                    <Popover open={commandOpen} onOpenChange={setCommandOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={commandOpen}
+                          className="w-full justify-between"
+                        >
+                          {field.value.length > 0
+                            ? `${field.value.length} member${field.value.length > 1 ? "s" : ""} selected`
+                            : "Select members"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[400px] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search members..." />
+                          <CommandList>
+                            <CommandEmpty>No members found.</CommandEmpty>
+                            <CommandGroup>
+                              <ScrollArea className="h-[200px]">
+                                {members
+                                  .filter((member, index, self) => 
+                                    index === self.findIndex((m) => m.profile.id === member.profile.id)
+                                  )
+                                  .map((member) => {
+                                    const isSelected = field.value?.includes(member.profile.id)
+                                    return (
+                                      <CommandItem
+                                        key={member.profile.id}
+                                        value={member.profile.id}
+                                        onSelect={() => {
+                                          const currentValue = field.value || []
+                                          const updatedValue = isSelected
+                                            ? currentValue.filter((id) => id !== member.profile.id)
+                                            : [...currentValue, member.profile.id]
+                                          field.onChange(updatedValue)
+                                        }}
+                                      >
+                                        <div className="flex items-center space-x-2">
+                                          <Checkbox
+                                            checked={isSelected}
+                                            className={cn("mr-2", isSelected ? "opacity-100" : "opacity-40")}
+                                          />
+                                          <MemberAvatar
+                                            avatarUrl={member.profile.avatar_url || null}
+                                            fullName={member.profile.full_name}
+                                          />
+                                          <span>{member.profile.full_name}</span>
+                                          {isSelected && <Check className="ml-auto h-4 w-4" />}
+                                        </div>
+                                      </CommandItem>
+                                    )
+                                  })}
+                              </ScrollArea>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             {!isPlanning && (
               <FormField

@@ -20,6 +20,8 @@ import { CompleteLaagDialog } from "@/components/laags/complete-laag-dialog"
 import { Laag } from "@/types"
 import { Textarea } from "@/components/ui/textarea"
 import { CommentInput } from "@/components/laags/comment-input"
+import { Slider } from "@/components/ui/slider"
+import { submitFunMeter, updateFunMeter } from "@/services/laags"
 
 function LaagImage({ imagePath }: { imagePath: string }) {
   const imageUrl = useLaagImage(imagePath)
@@ -58,6 +60,10 @@ export default function LaagDetails() {
   const [newComment, setNewComment] = useState("")
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [showCommentInput, setShowCommentInput] = useState(false)
+  const [showFunMeter, setShowFunMeter] = useState(false)
+  const [funMeterValue, setFunMeterValue] = useState<number>(0)
+  const [userFunMeter, setUserFunMeter] = useState<any>(null)
+  const [isAttendee, setIsAttendee] = useState(false)
   const supabase = createClient()
 
   const organizerAvatarUrl = useAvatar(laag?.organizer.avatar_url || null)
@@ -112,6 +118,34 @@ export default function LaagDetails() {
     }
     if (laag) checkOrganizer()
   }, [laag?.organizer.id, supabase])
+
+  useEffect(() => {
+    const checkAttendee = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !laag) return
+  
+      const isUserAttendee = laag.laagAttendees.some(
+        attendee => attendee.attendee_id === user.id && !attendee.is_removed
+      )
+      setIsAttendee(isUserAttendee)
+  
+      if (isUserAttendee) {
+        const { data: funMeter } = await supabase
+          .from("laagFunMeter")
+          .select("*")
+          .eq("laag_id", laag.id)
+          .eq("user_id", user.id)
+          .eq("is_deleted", false)
+          .single()
+  
+        if (funMeter) {
+          setUserFunMeter(funMeter)
+          setFunMeterValue(funMeter.fun_meter)
+        }
+      }
+    }
+    checkAttendee()
+  }, [laag, supabase])
 
   const handleDelete = async () => {
     try {
@@ -202,6 +236,22 @@ export default function LaagDetails() {
     } catch (error) {
       window.location.reload()
 
+    }
+  }
+
+  //handles fun meter submission
+  const handleFunMeterSubmit = async () => {
+    try {
+      if (userFunMeter) {
+        await updateFunMeter(userFunMeter.id, funMeterValue)
+      } else {
+        await submitFunMeter(laag.id, params.id, funMeterValue)
+      }
+      toast.success("Fun meter updated successfully")
+      window.location.reload()
+    } catch (error) {
+      console.error("Error updating fun meter:", error)
+      toast.error("Failed to update fun meter")
     }
   }
 
@@ -522,6 +572,51 @@ export default function LaagDetails() {
               </CardContent>
             </Card>
           )}
+
+          {/* fun meter */}
+          {isAttendee && laag.status === "Completed" && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Rate Your Experience</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowFunMeter(true)}
+                  className="w-full"
+                >
+                  {userFunMeter ? "Edit your fun meter" : "Rate your experience"}
+                </Button>
+
+                <AlertDialog open={showFunMeter} onOpenChange={setShowFunMeter}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Rate your experience</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        How fun was this laag? Rate from 0 to 10
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="py-6">
+                      <Slider
+                        value={[funMeterValue]}
+                        onValueChange={(value) => setFunMeterValue(value[0])}
+                        max={10}
+                        step={0.1}
+                        className="w-full"
+                      />
+                      <p className="text-center mt-2">Rating: {funMeterValue.toFixed(1)}</p>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleFunMeterSubmit}>
+                        Submit
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          )}  
           
           {/* badges card */}
           <Card>

@@ -15,19 +15,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Upload, Loader2 } from "lucide-react"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 import Image from "next/image"
-import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { LAAG_TYPES } from "@/constants/laag-types"
+import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList, CommandInput } from "@/components/ui/command"
+import { Check, ChevronsUpDown, User } from "lucide-react"
+import { useAvatar } from "@/hooks/useAvatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 const formSchema = z.object({
-  what: z.string().min(1, "What is required"),
-  where: z.string().min(1, "Where is required"),
-  why: z.string().min(1, "Why is required"),
+  what: z.string().min(1, "What is required").max(25, "Title cannot exceed 25 characters"),
+  where: z.string().min(1, "Where is required").max(50, "Location cannot exceed 50 characters"),
+  why: z.string().max(250, "Description cannot exceed 250 characters").optional(),
+  type: z.string().min(1, "Type is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
   actual_cost: z.string().min(1, "Actual cost is required"),
   status: z.string().min(1, "Status is required"),
@@ -88,6 +97,16 @@ interface CompleteLaagDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
+function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null, fullName: string }) {
+  const memberAvatarUrl = useAvatar(avatarUrl)
+  return (
+    <Avatar className="h-8 w-8">
+      <AvatarImage src={memberAvatarUrl || undefined} />
+      <AvatarFallback>{fullName.charAt(0)}</AvatarFallback>
+    </Avatar>
+  )
+}
+
 export function CompleteLaagDialog({ 
   laag, 
   members, 
@@ -98,6 +117,12 @@ export function CompleteLaagDialog({
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [existingImages, setExistingImages] = useState((laag.laagImages || []).filter(img => !img.is_deleted))
+  const [typeCommandOpen, setTypeCommandOpen] = useState(false)
+  const [typeSearchQuery, setTypeSearchQuery] = useState("")
+  const [privacyCommandOpen, setPrivacyCommandOpen] = useState(false)
+  const [commandOpen, setCommandOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -105,7 +130,8 @@ export function CompleteLaagDialog({
     defaultValues: {
       what: laag.what,
       where: laag.where,
-      why: laag.why,
+      why: laag.why || "",
+      type: laag.type,
       estimated_cost: laag.estimated_cost.toString(),
       actual_cost: laag.actual_cost?.toString() || "",
       status: "Completed",
@@ -113,7 +139,9 @@ export function CompleteLaagDialog({
       when_end: new Date(laag.when_end),
       fun_meter: "",
       images: [],
-      attendees: members.map(member => member.profile.id),
+      attendees: laag.laagAttendees
+        .filter(attendee => !attendee.is_removed)
+        .map(attendee => attendee.attendee_id),
       privacy: laag.privacy,
     },
   })
@@ -134,9 +162,25 @@ export function CompleteLaagDialog({
     }
   }
 
-  const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index))
-    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  const removeImage = async (index: number, isExisting: boolean = false) => {
+    if (isExisting) {
+      // Mark existing image as deleted
+      const imageToDelete = existingImages[index]
+      const { error } = await supabase
+        .from("laagImages")
+        .update({ is_deleted: true })
+        .eq("id", imageToDelete.id)
+
+      if (error) {
+        toast.error("Failed to remove image")
+        return
+      }
+
+      setExistingImages(prev => prev.filter((_, i) => i !== index))
+    } else {
+      setUploadedImages(prev => prev.filter((_, i) => i !== index))
+      setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    }
   }
 
   const onSubmit = async (values: FormValues) => {
@@ -151,8 +195,9 @@ export function CompleteLaagDialog({
           where: values.where,
           why: values.why,
           estimated_cost: parseFloat(values.estimated_cost),
-          actual_cost: values.actual_cost ? parseFloat(values.actual_cost) : null,
+          actual_cost: parseFloat(values.actual_cost),
           status: "Completed",
+          type: values.type,
           when_start: values.when_start.toISOString(),
           when_end: values.when_end.toISOString(),
           fun_meter: values.fun_meter ? parseFloat(values.fun_meter) : null,
@@ -163,8 +208,7 @@ export function CompleteLaagDialog({
 
       if (laagError) throw laagError
 
-      // Handle attendees updates...
-      // Get current attendees
+      // Handle attendees updates
       const currentAttendees = laag.laagAttendees.filter(a => !a.is_removed)
       const newAttendees = values.attendees
 
@@ -237,7 +281,7 @@ export function CompleteLaagDialog({
         .insert({
           laag_id: laag.id,
           laag_status: "Completed",
-          group_id: laag.group_id // Make sure group_id is included in the laag prop type
+          group_id: laag.group_id
         })
         .select('id')
         .single();
@@ -261,7 +305,6 @@ export function CompleteLaagDialog({
 
         if (readsError) {
           console.error("Error creating notification reads:", readsError);
-          // Don't throw here as the laag is already completed
         }
       }
 
@@ -293,7 +336,7 @@ export function CompleteLaagDialog({
                   name="what"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>What</FormLabel>
+                      <FormLabel>Title</FormLabel>
                       <FormControl>
                         <Input placeholder="What are you planning?" {...field} />
                       </FormControl>
@@ -307,7 +350,7 @@ export function CompleteLaagDialog({
                   name="where"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Where</FormLabel>
+                      <FormLabel>Location</FormLabel>
                       <FormControl>
                         <Input placeholder="Where will it happen?" {...field} />
                       </FormControl>
@@ -322,9 +365,9 @@ export function CompleteLaagDialog({
                 name="why"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Why</FormLabel>
+                    <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Why are you planning this?" {...field} />
+                      <Textarea placeholder="What are some more details about this laag?" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -361,39 +404,127 @@ export function CompleteLaagDialog({
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        value="Completed"
-                        disabled={true}
-                        className="bg-muted"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          value="Completed"
+                          disabled
+                          className="bg-muted"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <Popover open={typeCommandOpen} onOpenChange={setTypeCommandOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={typeCommandOpen}
+                              className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                            >
+                              {field.value || "Select type"}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[200px] p-0">
+                          <Command>
+                            <CommandInput 
+                              placeholder="Search type..." 
+                              value={typeSearchQuery}
+                              onValueChange={setTypeSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandGroup>
+                                <ScrollArea className="h-[200px]">
+                                  {LAAG_TYPES
+                                    .filter((type) =>
+                                      type.label.toLowerCase().includes(typeSearchQuery.toLowerCase())
+                                    )
+                                    .map((type) => (
+                                      <CommandItem
+                                        key={type.value}
+                                        value={type.label}
+                                        onSelect={() => {
+                                          field.onChange(type.value)
+                                          setTypeCommandOpen(false)
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            field.value === type.value ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {type.label}
+                                      </CommandItem>
+                                    ))}
+                                </ScrollArea>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="when_start"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Start Date</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          value={format(field.value, "yyyy-MM-dd")} 
-                          className="bg-muted"
-                        />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -403,15 +534,38 @@ export function CompleteLaagDialog({
                   control={form.control}
                   name="when_end"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>End Date</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          value={format(field.value, "yyyy-MM-dd")} 
-                          className="bg-muted"
-                        />
-                      </FormControl>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                              disabled
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -421,8 +575,27 @@ export function CompleteLaagDialog({
               <div className="space-y-2">
                 <FormLabel>Images</FormLabel>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+                  {existingImages.map((image, index) => (
+                    <div key={image.id} className="relative aspect-square">
+                      <Image
+                        src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/laags/${image.image}`}
+                        alt={`Existing image ${index + 1}`}
+                        fill
+                        className="rounded-lg object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute right-2 top-2 h-6 w-6"
+                        onClick={() => removeImage(index, true)}
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  ))}
                   {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square">
+                    <div key={`preview-${index}`} className="relative aspect-square">
                       <Image
                         src={preview}
                         alt={`Preview ${index + 1}`}
@@ -453,40 +626,92 @@ export function CompleteLaagDialog({
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <FormLabel>Attendees</FormLabel>
-                <div className="grid grid-cols-2 gap-4">
-                  {members.filter((member, index, self) => 
-                    index === self.findIndex((m) => m.profile.id === member.profile.id)
-                  ).map((member) => (
-                    <FormField
-                      key={member.profile.id}
-                      control={form.control}
-                      name="attendees"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-2">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(member.profile.id)}
-                              onCheckedChange={(checked) => {
-                                const currentValue = field.value || []
-                                if (checked) {
-                                  field.onChange([...currentValue, member.profile.id])
-                                } else {
-                                  field.onChange(currentValue.filter(id => id !== member.profile.id))
-                                }
-                              }}
-                            />
-                          </FormControl>
-                          <FormLabel className="font-normal">
-                            {member.profile.full_name}
-                          </FormLabel>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-              </div>
+              <FormField
+                control={form.control}
+                name="attendees"
+                render={({ field }) => {
+                  const activeMembers = members.filter(m => !m.is_removed);
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>Attendees</FormLabel>
+                      <FormDescription>Kinsay manguban ani nga laag?</FormDescription>
+                      <div className="mt-2">
+                        <Popover open={commandOpen} onOpenChange={setCommandOpen}>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={commandOpen}
+                              className="w-full justify-between"
+                            >
+                              <div className="flex gap-2 items-center">
+                                <User className="h-4 w-4 shrink-0 opacity-50" />
+                                <span>
+                                  {field.value?.length} member{field.value?.length === 1 ? "" : "s"} selected
+                                </span>
+                              </div>
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0" align="start">
+                            <Command>
+                              <CommandInput
+                                placeholder="Search members..."
+                                value={searchQuery}
+                                onValueChange={setSearchQuery}
+                              />
+                              <CommandList>
+                                <CommandEmpty>No members found.</CommandEmpty>
+                                <CommandGroup>
+                                  <ScrollArea className="h-[200px]">
+                                    {activeMembers
+                                      .filter(member =>
+                                        member.profile.full_name
+                                          .toLowerCase()
+                                          .includes(searchQuery.toLowerCase())
+                                      )
+                                      .map((member) => (
+                                        <CommandItem
+                                          key={member.profile.id}
+                                          value={member.profile.full_name}
+                                          onSelect={() => {
+                                            const currentValue = field.value || [];
+                                            const newValue = currentValue.includes(member.profile.id)
+                                              ? currentValue.filter((id) => id !== member.profile.id)
+                                              : [...currentValue, member.profile.id];
+                                            field.onChange(newValue);
+                                          }}
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <MemberAvatar
+                                              avatarUrl={member.profile.avatar_url || null}
+                                              fullName={member.profile.full_name}
+                                            />
+                                            <span>{member.profile.full_name}</span>
+                                            <Check
+                                              className={cn(
+                                                "ml-auto h-4 w-4",
+                                                field.value?.includes(member.profile.id)
+                                                  ? "opacity-100"
+                                                  : "opacity-0"
+                                              )}
+                                            />
+                                          </div>
+                                        </CommandItem>
+                                      ))}
+                                  </ScrollArea>
+                                </CommandGroup>
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
               <FormField
                 control={form.control}
@@ -494,15 +719,59 @@ export function CompleteLaagDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Privacy</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="group-only">Group Only</option>
-                        <option value="public">Public</option>
-                      </select>
-                    </FormControl>
+                    <Popover open={privacyCommandOpen} onOpenChange={setPrivacyCommandOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={privacyCommandOpen}
+                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value === "public" ? "Public" : "Group Only"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandList>
+                            <CommandGroup>
+                              <CommandItem
+                                value="group-only"
+                                onSelect={() => {
+                                  field.onChange("group-only")
+                                  setPrivacyCommandOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === "group-only" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Group Only
+                              </CommandItem>
+                              <CommandItem
+                                value="public"
+                                onSelect={() => {
+                                  field.onChange("public")
+                                  setPrivacyCommandOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === "public" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Public
+                              </CommandItem>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

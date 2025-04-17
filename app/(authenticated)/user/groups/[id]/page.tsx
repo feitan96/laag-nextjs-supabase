@@ -335,6 +335,7 @@ export default function GroupFeed() {
               owner={group.owner}
               members={activeMembers}
               totalMembers={group.no_members}
+              className="max-w-xs" 
             />
           </div>
         </div>

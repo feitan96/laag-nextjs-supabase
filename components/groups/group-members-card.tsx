@@ -31,6 +31,7 @@ interface GroupMembersCardProps {
   owner: GroupOwner
   members: GroupMember[]
   totalMembers: number
+  className?: string  // Add className prop for adjustable width
 }
 
 function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null, fullName: string }) {
@@ -43,7 +44,7 @@ function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null, fullN
   )
 }
 
-export function GroupMembersCard({ owner, members, totalMembers }: GroupMembersCardProps) {
+export function GroupMembersCard({ owner, members, totalMembers, className }: GroupMembersCardProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [displayCount, setDisplayCount] = useState(5)
 
@@ -62,8 +63,8 @@ export function GroupMembersCard({ owner, members, totalMembers }: GroupMembersC
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader>
+    <Card className={`overflow-hidden w-full max-w-md ${className}`}>
+      <CardHeader className="px-4">
         <CardTitle className="flex items-center justify-between">
           <span>Members</span>
           <Badge variant="secondary">{totalMembers} total</Badge>
@@ -79,7 +80,7 @@ export function GroupMembersCard({ owner, members, totalMembers }: GroupMembersC
           />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-4">
         <ScrollArea className="h-[400px] pr-4 custom-scrollbar">
           <div className="space-y-6">
             {/* Owner Section - Always visible */}

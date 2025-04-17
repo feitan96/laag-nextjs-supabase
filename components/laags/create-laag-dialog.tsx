@@ -96,6 +96,7 @@ export function CreateLaagDialog({
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [commandOpen, setCommandOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -540,30 +541,38 @@ export function CreateLaagDialog({
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-[400px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Search members..." />
-                          <CommandList>
-                            <CommandEmpty>No members found.</CommandEmpty>
-                            <CommandGroup>
-                              <ScrollArea className="h-[200px]">
-                                {members
-                                  .filter((member, index, self) => 
-                                    index === self.findIndex((m) => m.profile.id === member.profile.id)
-                                  )
-                                  .map((member) => {
-                                    const isSelected = field.value?.includes(member.profile.id)
-                                    return (
-                                      <CommandItem
-                                        key={member.profile.id}
-                                        value={member.profile.id}
-                                        onSelect={() => {
-                                          const currentValue = field.value || []
-                                          const updatedValue = isSelected
-                                            ? currentValue.filter((id) => id !== member.profile.id)
-                                            : [...currentValue, member.profile.id]
-                                          field.onChange(updatedValue)
-                                        }}
-                                      >
+                      
+                                <Command>
+                                  <CommandInput 
+                                    placeholder="Search members..." 
+                                    value={searchQuery}
+                                    onValueChange={setSearchQuery}
+                                  />
+                                  <CommandList>
+                                    <CommandEmpty>No members found.</CommandEmpty>
+                                    <CommandGroup>
+                                      <ScrollArea className="h-[200px]">
+                                        {members
+                                          .filter((member, index, self) => 
+                                            index === self.findIndex((m) => m.profile.id === member.profile.id)
+                                          )
+                                          .filter((member) => 
+                                            member.profile.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+                                          )
+                                          .map((member) => {
+                                            const isSelected = field.value?.includes(member.profile.id)
+                                            return (
+                                              <CommandItem
+                                                key={member.profile.id}
+                                                value={member.profile.full_name} // Changed to use full_name for searching
+                                                onSelect={() => {
+                                                  const currentValue = field.value || []
+                                                  const updatedValue = isSelected
+                                                    ? currentValue.filter((id) => id !== member.profile.id)
+                                                    : [...currentValue, member.profile.id]
+                                                  field.onChange(updatedValue)
+                                                }}
+                                              >
                                         <div className="flex items-center space-x-2">
                                           <Checkbox
                                             checked={isSelected}

@@ -97,6 +97,8 @@ export function CreateLaagDialog({
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [commandOpen, setCommandOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [typeCommandOpen, setTypeCommandOpen] = useState(false)
+  const [typeSearchQuery, setTypeSearchQuery] = useState("")
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -385,25 +387,69 @@ export function CreateLaagDialog({
                 )}
               />
 
+             
+              
               <FormField
                 control={form.control}
                 name="type"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Type</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="">Select type</option>
-                        {LAAG_TYPES.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                    </FormControl>
+                    <Popover open={typeCommandOpen} onOpenChange={setTypeCommandOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={typeCommandOpen}
+                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value
+                              ? LAAG_TYPES.find((type) => type.value === field.value)?.label
+                              : "Select type"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[300px] p-0">
+                        <Command>
+                          <CommandInput 
+                            placeholder="Search type..." 
+                            value={typeSearchQuery}
+                            onValueChange={setTypeSearchQuery}
+                          />
+                          <CommandList>
+                            <CommandEmpty>No type found.</CommandEmpty>
+                            <CommandGroup>
+                              <ScrollArea className="h-[200px]">
+                                {LAAG_TYPES
+                                  .filter((type) =>
+                                    type.label.toLowerCase().includes(typeSearchQuery.toLowerCase())
+                                  )
+                                  .map((type) => (
+                                    <CommandItem
+                                      key={type.value}
+                                      value={type.label}
+                                      onSelect={() => {
+                                        field.onChange(type.value)
+                                        setTypeCommandOpen(false)
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          field.value === type.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {type.label}
+                                    </CommandItem>
+                                  ))}
+                              </ScrollArea>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

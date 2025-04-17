@@ -21,6 +21,7 @@ import { CommentCard } from "../comment-card"
 import { CommentInput } from "../comment-input"
 import { Slider } from "@/components/ui/slider"
 import { submitFunMeter, updateFunMeter, deleteFunMeter } from "@/services/laags"
+import { cn } from "@/lib/utils"
 
 
 const cardClasses = `
@@ -220,8 +221,12 @@ const commentCount = filteredComments.length;
           </div>
         )} */}
       
+        {/* Replace the existing cost display section */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <div className="rounded-lg bg-muted/50 p-3 flex items-center gap-2">
+          <div className={cn(
+            "rounded-lg bg-muted/50 p-3 flex items-center gap-2",
+            laag.actual_cost === null && "col-span-2" // Make it span full width if no actual cost
+          )}>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
             <div>
               <p className="text-xs text-muted-foreground">Estimated</p>

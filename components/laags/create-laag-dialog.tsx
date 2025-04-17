@@ -98,21 +98,30 @@ export function CreateLaagDialog({
 
   const isPlanning = status === "Planning"
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      setUploadedImages(prev => [...prev, ...files])
-      
-      // Create previews
-      files.forEach(file => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          setImagePreviews(prev => [...prev, reader.result as string])
+  const MAX_IMAGES = 9;
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (e.target.files) {
+        const files = Array.from(e.target.files)
+        const remainingSlots = MAX_IMAGES - uploadedImages.length
+        
+        if (files.length + uploadedImages.length > MAX_IMAGES) {
+          toast.error(`You can only upload up to ${MAX_IMAGES} images`)
+          return
         }
-        reader.readAsDataURL(file)
-      })
+        
+        setUploadedImages(prev => [...prev, ...files])
+        
+        // Create previews
+        files.forEach(file => {
+          const reader = new FileReader()
+          reader.onloadend = () => {
+            setImagePreviews(prev => [...prev, reader.result as string])
+          }
+          reader.readAsDataURL(file)
+        })
+      }
     }
-  }
 
   const removeImage = (index: number) => {
     setUploadedImages(prev => prev.filter((_, i) => i !== index))

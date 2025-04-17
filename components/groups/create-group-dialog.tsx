@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Check, ChevronsUpDown, Loader2, Plus, Upload, User, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+import { useAvatar } from "@/hooks/useAvatar"
 
 // Define the form schema with Zod
 const formSchema = z.object({
@@ -46,6 +47,18 @@ interface Profile {
   id: string
   full_name: string
   avatar_url?: string | null
+}
+
+function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null, fullName: string }) {
+  const memberAvatarUrl = useAvatar(avatarUrl)
+  return (
+    <Avatar className="h-8 w-8">
+      <AvatarImage src={memberAvatarUrl || undefined} />
+      <AvatarFallback>
+        {fullName.charAt(0)}
+      </AvatarFallback>
+    </Avatar>
+  )
 }
 
 export function NewGroupDialog({ className }: { className?: string }) {
@@ -332,12 +345,10 @@ export function NewGroupDialog({ className }: { className?: string }) {
                                           checked={isSelected}
                                           className={cn("mr-2", isSelected ? "opacity-100" : "opacity-40")}
                                         />
-                                        <Avatar className="h-8 w-8">
-                                          <AvatarImage src={profile.avatar_url || undefined} />
-                                          <AvatarFallback>
-                                            <User className="h-4 w-4" />
-                                          </AvatarFallback>
-                                        </Avatar>
+                                        <MemberAvatar
+                                          avatarUrl={profile.avatar_url || null}
+                                          fullName={profile.full_name}
+                                        />
                                         <span>{profile.full_name}</span>
                                         {isSelected && <Check className="ml-auto h-4 w-4" />}
                                       </div>

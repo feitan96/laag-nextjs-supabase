@@ -45,7 +45,7 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
 
   const getLaagViewLink = () => {
     if (laag.privacy === "public") {
-      return `/user/laags/${laag.id}`
+      return `/user/groups/${laag.group_id}/laags/${laag.id}?from=group`
     }
     return `/user/groups/${laag.group_id}/laags/${laag.id}?from=group`
   }

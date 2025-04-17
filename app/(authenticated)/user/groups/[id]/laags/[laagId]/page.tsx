@@ -260,7 +260,7 @@ export default function LaagDetails() {
       {/* Header with back button and actions */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => window.location.href = isPublicView ? '/user/feed' : `/user/groups/${params.id}`}>
+          <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <h1 className="text-3xl font-bold">{laag.what}</h1>

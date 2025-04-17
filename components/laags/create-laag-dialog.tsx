@@ -406,7 +406,7 @@ export function CreateLaagDialog({
                           >
                             {field.value
                               ? LAAG_TYPES.find((type) => type.value === field.value)?.label
-                              : "Select type"}
+                              : "Unsay klase ani nga laag?"}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
                         </FormControl>
@@ -470,7 +470,7 @@ export function CreateLaagDialog({
                             variant="outline"
                             className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                           >
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Nus-a magsugod?</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -509,7 +509,7 @@ export function CreateLaagDialog({
                             className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={!form.getValues("when_start")}
                           >
-                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
+                            {field.value ? format(field.value, "PPP") : <span>Nus-a mahuman?</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -570,7 +570,7 @@ export function CreateLaagDialog({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Attendees</FormLabel>
-                  <FormDescription>Select members to join this laag.</FormDescription>
+                  <FormDescription>Kinsay manguban ani nga laag?</FormDescription>
                   <div className="mt-2">
                     <Popover open={commandOpen} onOpenChange={setCommandOpen}>
                       <PopoverTrigger asChild>
@@ -581,8 +581,8 @@ export function CreateLaagDialog({
                           className="w-full justify-between"
                         >
                           {field.value.length > 0
-                            ? `${field.value.length} member${field.value.length > 1 ? "s" : ""} selected`
-                            : "Select members"}
+                            ? `${field.value.length} member${field.value.length > 1 ? "s" : ""} ang manguban`
+                            : "Ali, pamimli"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>

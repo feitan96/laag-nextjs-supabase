@@ -70,6 +70,7 @@ export default function LaagDetails() {
   const filteredImages = laag?.laagImages.filter(img => !img.is_deleted) || []
   const activeAttendees = laag?.laagAttendees.filter(attendee => !attendee.is_removed) || []
   const filteredComments = laag?.comments.filter(c => !c.is_deleted) || []
+  const [groupMembers, setGroupMembers] = useState([]);
 
   useEffect(() => {
     setIsPublicView(new URLSearchParams(window.location.search).get('from') === 'public')
@@ -146,6 +147,25 @@ export default function LaagDetails() {
     }
     checkAttendee()
   }, [laag, supabase])
+
+  useEffect(() => {
+    const fetchGroupMembers = async () => {
+      const { data, error } = await supabase
+        .from('groupMembers')
+        .select(`
+          id,
+          group_member,
+          is_removed,
+          profile:profiles(id, full_name, avatar_url)
+        `)
+        .eq('group_id', params.id)
+        .eq('is_removed', false);
+  
+      if (!error) setGroupMembers(data);
+    };
+  
+    if (laag) fetchGroupMembers();
+  }, [laag, params.id, supabase]);
 
   const handleDelete = async () => {
     try {
@@ -382,15 +402,10 @@ export default function LaagDetails() {
                 <h2 className="text-xl font-semibold">Details</h2>
                 {isOrganizer && (
                   <EditLaagDialog
-                    laag={laag}
-                    members={activeAttendees.map(attendee => ({
-                      id: attendee.attendee.id,
-                      group_member: attendee.attendee_id,
-                      is_removed: false,
-                      profile: attendee.attendee
-                    }))}
-                    onLaagUpdated={() => window.location.reload()}
-                  />
+                  laag={laag}
+                  members={groupMembers}
+                  onLaagUpdated={() => window.location.reload()}
+                />
                 )}
               </div>
             </CardHeader>
@@ -647,16 +662,11 @@ export default function LaagDetails() {
       {/* Complete Laag Dialog */}
       {showCompleteDialog && (
         <CompleteLaagDialog
-          laag={laag}
-          members={activeAttendees.map(attendee => ({
-            id: attendee.attendee.id,
-            group_member: attendee.attendee_id,
-            is_removed: false,
-            profile: attendee.attendee
-          }))}
-          onLaagUpdated={() => window.location.reload()}
-          open={showCompleteDialog}
-          onOpenChange={setShowCompleteDialog}
+        laag={laag}
+        members={groupMembers}
+        onLaagUpdated={() => window.location.reload()}
+        open={showCompleteDialog}
+        onOpenChange={setShowCompleteDialog}
         />
       )}
     </div>

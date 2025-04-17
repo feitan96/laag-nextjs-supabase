@@ -148,7 +148,9 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
       when_end: new Date(laag.when_end),
       fun_meter: laag.fun_meter?.toString() || "",
       images: [],
-      attendees: members.map(member => member.profile.id),
+      attendees: laag.laagAttendees
+      .filter(attendee => !attendee.is_removed)
+      .map(attendee => attendee.attendee_id),
       privacy: laag.privacy,
     },
   })
@@ -657,89 +659,94 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                 </div>
               </div>
 
-              {/* Replace the existing attendees field with this updated version */}
+              {/* attendee field */}
               <FormField
-                control={form.control}
-                name="attendees"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Attendees</FormLabel>
-                    <FormDescription>Kinsay manguban ani nga laag?</FormDescription>
-                    <div className="mt-2">
-                      <Popover open={commandOpen} onOpenChange={setCommandOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={commandOpen}
-                            className="w-full justify-between"
+  control={form.control}
+  name="attendees"
+  render={({ field }) => {
+    // Get all active group members (not removed)
+    const activeMembers = members.filter(member => !member.is_removed);
+    
+    return (
+      <FormItem>
+        <FormLabel>Attendees</FormLabel>
+        <FormDescription>Kinsay manguban ani nga laag?</FormDescription>
+        <div className="mt-2">
+          <Popover open={commandOpen} onOpenChange={setCommandOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={commandOpen}
+                className="w-full justify-between"
+              >
+                <div className="flex gap-2 items-center">
+                  <User className="h-4 w-4 shrink-0 opacity-50" />
+                  <span>
+                    {field.value?.length} member{field.value?.length === 1 ? "" : "s"} selected
+                  </span>
+                </div>
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput
+                  placeholder="Search members..."
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                />
+                <CommandList>
+                  <CommandEmpty>No members found.</CommandEmpty>
+                  <CommandGroup>
+                    <ScrollArea className="h-[200px]">
+                      {activeMembers
+                        .filter(member =>
+                          member.profile.full_name
+                            .toLowerCase()
+                            .includes(searchQuery.toLowerCase())
+                        )
+                        .map((member) => (
+                          <CommandItem
+                            key={member.profile.id}
+                            value={member.profile.full_name}
+                            onSelect={() => {
+                              const currentValue = field.value || [];
+                              const newValue = currentValue.includes(member.profile.id)
+                                ? currentValue.filter((id) => id !== member.profile.id)
+                                : [...currentValue, member.profile.id];
+                              field.onChange(newValue);
+                            }}
                           >
-                            <div className="flex gap-2 items-center">
-                              <User className="h-4 w-4 shrink-0 opacity-50" />
-                              <span>
-                                {field.value?.length} member{field.value?.length === 1 ? "" : "s"} selected
-                              </span>
+                            <div className="flex items-center gap-2">
+                              <MemberAvatar
+                                avatarUrl={member.profile.avatar_url || null}
+                                fullName={member.profile.full_name}
+                              />
+                              <span>{member.profile.full_name}</span>
+                              <Check
+                                className={cn(
+                                  "ml-auto h-4 w-4",
+                                  field.value?.includes(member.profile.id)
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
                             </div>
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search members..."
-                              value={searchQuery}
-                              onValueChange={setSearchQuery}
-                            />
-                            <CommandList>
-                              <CommandGroup>
-                                <ScrollArea className="h-[200px]">
-                                  {members
-                                    .filter(
-                                      (member) =>
-                                        member.profile.full_name
-                                          .toLowerCase()
-                                          .includes(searchQuery.toLowerCase())
-                                    )
-                                    .map((member) => (
-                                      <CommandItem
-                                        key={member.profile.id}
-                                        value={member.profile.full_name}
-                                        onSelect={() => {
-                                          const currentValue = field.value || []
-                                          const newValue = currentValue.includes(member.profile.id)
-                                            ? currentValue.filter((id) => id !== member.profile.id)
-                                            : [...currentValue, member.profile.id]
-                                          field.onChange(newValue)
-                                        }}
-                                      >
-                                        <div className="flex items-center gap-2">
-                                          <MemberAvatar
-                                            avatarUrl={member.profile.avatar_url || null}
-                                            fullName={member.profile.full_name}
-                                          />
-                                          <span>{member.profile.full_name}</span>
-                                          <Check
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              field.value?.includes(member.profile.id)
-                                                ? "opacity-100"
-                                                : "opacity-0"
-                                            )}
-                                          />
-                                        </div>
-                                      </CommandItem>
-                                    ))}
-                                </ScrollArea>
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                          </CommandItem>
+                        ))}
+                    </ScrollArea>
+                  </CommandGroup>
+                </CommandList>
+              </Command>
+            </PopoverContent>
+          </Popover>
+        </div>
+        <FormMessage />
+      </FormItem>
+    );
+  }}
+/>
 
               <FormField
                 control={form.control}

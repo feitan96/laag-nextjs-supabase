@@ -522,7 +522,8 @@ export default function LaagDetails() {
               </CardContent>
             </Card>
           )}
-
+          
+          {/* badges card */}
           <Card>
             <CardHeader>
               <h2 className="text-xl font-semibold">Status</h2>
@@ -531,6 +532,12 @@ export default function LaagDetails() {
               <Badge variant={getStatusVariant(laag.status)}>
                 {laag.status}
               </Badge>
+              <div>
+                <h3 className="font-medium mb-2">Type</h3>
+                <Badge variant="outline">
+                  {laag.type}
+                </Badge>
+              </div>
               <div>
                 <h3 className="font-medium mb-2">Privacy</h3>
                 <Badge variant="outline">

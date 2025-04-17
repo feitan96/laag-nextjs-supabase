@@ -403,10 +403,13 @@ export function CreateLaagDialog({
                         <Calendar
                           mode="single"
                           selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date()
-                          }
+                          onSelect={(date) => {
+                            field.onChange(date)
+                            // Automatically set end date to the same date as start date
+                            if (date) {
+                              form.setValue("when_end", date)
+                            }
+                          }}
                           initialFocus
                         />
                       </PopoverContent>
@@ -431,6 +434,7 @@ export function CreateLaagDialog({
                               "w-full pl-3 text-left font-normal",
                               !field.value && "text-muted-foreground"
                             )}
+                            disabled={!form.getValues("when_start")}
                           >
                             {field.value ? (
                               format(field.value, "PPP")
@@ -446,9 +450,10 @@ export function CreateLaagDialog({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date()
-                          }
+                          disabled={(date) => {
+                            const startDate = form.getValues("when_start")
+                            return startDate ? date < startDate : true
+                          }}
                           initialFocus
                         />
                       </PopoverContent>

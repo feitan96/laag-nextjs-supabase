@@ -99,6 +99,7 @@ export function CreateLaagDialog({
   const [searchQuery, setSearchQuery] = useState("")
   const [typeCommandOpen, setTypeCommandOpen] = useState(false)
   const [typeSearchQuery, setTypeSearchQuery] = useState("")
+  const [privacyCommandOpen, setPrivacyCommandOpen] = useState(false)
   const supabase = createClient()
 
   const form = useForm<FormValues>({
@@ -653,15 +654,59 @@ export function CreateLaagDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Privacy</FormLabel>
-                    <FormControl>
-                      <select
-                        {...field}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        <option value="group-only">Group Only</option>
-                        <option value="public">Public</option>
-                      </select>
-                    </FormControl>
+                    <Popover open={privacyCommandOpen} onOpenChange={setPrivacyCommandOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={privacyCommandOpen}
+                            className={cn("w-full justify-between", !field.value && "text-muted-foreground")}
+                          >
+                            {field.value === "public" ? "Public" : "Group Only"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[200px] p-0">
+                        <Command>
+                          <CommandList>
+                            <CommandGroup>
+                              <CommandItem
+                                value="group-only"
+                                onSelect={() => {
+                                  field.onChange("group-only")
+                                  setPrivacyCommandOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === "group-only" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Group Only
+                              </CommandItem>
+                              <CommandItem
+                                value="public"
+                                onSelect={() => {
+                                  field.onChange("public")
+                                  setPrivacyCommandOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    field.value === "public" ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                Public
+                              </CommandItem>
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
                     <FormMessage />
                   </FormItem>
                 )}

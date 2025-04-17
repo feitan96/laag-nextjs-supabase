@@ -216,13 +216,27 @@ export default function LaagDetails() {
 
   if (loading) {
     return (
-      <div className="container max-w-4xl py-8">
+      <div className="container max-w-5xl mx-auto py-8 px-4">
         <div className="animate-pulse space-y-8">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="h-96 bg-muted rounded" />
-          <div className="space-y-4">
-            <div className="h-4 w-3/4 bg-muted rounded" />
-            <div className="h-4 w-1/2 bg-muted rounded" />
+          {/* Header skeleton */}
+          <div className="flex items-center justify-between">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="h-8 w-32 bg-muted rounded" />
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Main content skeleton */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-96 bg-muted rounded" />
+              <div className="h-64 bg-muted rounded" />
+            </div>
+            
+            {/* Sidebar skeleton */}
+            <div className="space-y-6">
+              <div className="h-40 bg-muted rounded" />
+              <div className="h-64 bg-muted rounded" />
+              <div className="h-48 bg-muted rounded" />
+            </div>
           </div>
         </div>
       </div>
@@ -242,9 +256,9 @@ export default function LaagDetails() {
   }
 
   return (
-    <div className="container max-w-4xl py-8 space-y-8">
-      {/* Header and actions */}
-      <div className="flex items-center justify-between">
+    <div className="container max-w-5xl mx-auto py-8 px-4">
+      {/* Header with back button and actions */}
+      <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => window.location.href = isPublicView ? '/user/feed' : `/user/groups/${params.id}`}>
             <ArrowLeft className="h-4 w-4" />
@@ -289,20 +303,21 @@ export default function LaagDetails() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        {/* Left column - Photos, Details, and Comments */}
-        <div className="md:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Main content - Left column */}
+        <div className="lg:col-span-2 space-y-6">
           {/* Photos */}
           {filteredImages.length > 0 && (
-            <Card>
+            <Card className="transition-shadow hover:shadow-md">
               <CardHeader>
                 <h2 className="text-xl font-semibold">Photos</h2>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {filteredImages.map((image) => (
-                    <div key={image.id} className="relative aspect-square">
+                    <div key={image.id} className="relative aspect-square group">
                       <LaagImage imagePath={image.image} />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ))}
                 </div>
@@ -467,8 +482,8 @@ export default function LaagDetails() {
           </Card>
         </div>
 
-        {/* Right column - Organizer, Attendees, Status */}
-        <div className="space-y-8">
+        {/* Sidebar - Right column */}
+        <div className="space-y-6">
           <Card>
             <CardHeader>
               <h2 className="text-xl font-semibold">Organizer</h2>

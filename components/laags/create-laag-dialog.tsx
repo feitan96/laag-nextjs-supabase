@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useForm } from "react-hook-form"
@@ -17,7 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Plus, Upload, Loader2 } from "lucide-react"
@@ -31,9 +33,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { LAAG_TYPES } from "@/constants/laag-types"
 
 const formSchema = z.object({
-  what: z.string().min(1, "What is required"),
-  where: z.string().min(1, "Where is required"),
-  why: z.string().optional(),
+  what: z.string().min(1, "What is required").max(25, "Title cannot exceed 25 characters"),
+  where: z.string().min(1, "Where is required").max(50, "Location cannot exceed 50 characters"),
+  why: z.string().max(250, "Description cannot exceed 250 characters").optional(),
   type: z.string().min(1, "Type is required"),
   estimated_cost: z.string().min(1, "Estimated cost is required"),
   actual_cost: z.string().optional(),
@@ -66,13 +68,13 @@ interface CreateLaagDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function CreateLaagDialog({ 
-  groupId, 
-  onLaagCreated, 
-  members, 
+export function CreateLaagDialog({
+  groupId,
+  onLaagCreated,
+  members,
   status,
   open,
-  onOpenChange
+  onOpenChange,
 }: CreateLaagDialogProps) {
   const [loading, setLoading] = useState(false)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
@@ -91,54 +93,56 @@ export function CreateLaagDialog({
       status: status,
       fun_meter: "",
       images: [],
-      attendees: members.map(member => member.profile.id),
+      attendees: members.map((member) => member.profile.id),
       privacy: "group-only",
     },
   })
 
   const isPlanning = status === "Planning"
 
-  const MAX_IMAGES = 9;
+  const MAX_IMAGES = 9
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) {
-        const files = Array.from(e.target.files)
-        const remainingSlots = MAX_IMAGES - uploadedImages.length
-        
-        if (files.length + uploadedImages.length > MAX_IMAGES) {
-          toast.error(`You can only upload up to ${MAX_IMAGES} images`)
-          return
-        }
-        
-        setUploadedImages(prev => [...prev, ...files])
-        
-        // Create previews
-        files.forEach(file => {
-          const reader = new FileReader()
-          reader.onloadend = () => {
-            setImagePreviews(prev => [...prev, reader.result as string])
-          }
-          reader.readAsDataURL(file)
-        })
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      const remainingSlots = MAX_IMAGES - uploadedImages.length
+
+      if (files.length + uploadedImages.length > MAX_IMAGES) {
+        toast.error(`You can only upload up to ${MAX_IMAGES} images`)
+        return
       }
+
+      setUploadedImages((prev) => [...prev, ...files])
+
+      // Create previews
+      files.forEach((file) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          setImagePreviews((prev) => [...prev, reader.result as string])
+        }
+        reader.readAsDataURL(file)
+      })
     }
+  }
 
   const removeImage = (index: number) => {
-    setUploadedImages(prev => prev.filter((_, i) => i !== index))
-    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index))
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
   // In the onSubmit function, modify the attendees section to include the organizer
   const onSubmit = async (values: FormValues) => {
     setLoading(true)
-  
+
     try {
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) throw new Error("No authenticated user")
-  
+
       const laagId = uuidv4()
-  
+
       // Create the laag first
       const { error: laagError } = await supabase.from("laags").insert({
         id: laagId,
@@ -146,91 +150,81 @@ export function CreateLaagDialog({
         where: values.where,
         why: values.why,
         type: values.type,
-        estimated_cost: parseFloat(values.estimated_cost),
-        actual_cost: values.actual_cost ? parseFloat(values.actual_cost) : null,
+        estimated_cost: Number.parseFloat(values.estimated_cost),
+        actual_cost: values.actual_cost ? Number.parseFloat(values.actual_cost) : null,
         status: values.status,
         when_start: values.when_start.toISOString(),
         when_end: values.when_end.toISOString(),
-        fun_meter: values.fun_meter ? parseFloat(values.fun_meter) : null,
+        fun_meter: values.fun_meter ? Number.parseFloat(values.fun_meter) : null,
         organizer: user.id,
         group_id: groupId,
         privacy: values.privacy,
       })
-  
+
       if (laagError) throw laagError
-  
+
       // Include organizer in attendees if not already included
       const allAttendees = new Set([...values.attendees, user.id])
-  
+
       // Create laag attendees
-      const { error: attendeesError } = await supabase
-        .from("laagAttendees")
-        .insert(
-          Array.from(allAttendees).map(attendeeId => ({
-            laag_id: laagId,
-            attendee_id: attendeeId,
-            is_removed: false
-          }))
-        )
-  
+      const { error: attendeesError } = await supabase.from("laagAttendees").insert(
+        Array.from(allAttendees).map((attendeeId) => ({
+          laag_id: laagId,
+          attendee_id: attendeeId,
+          is_removed: false,
+        })),
+      )
+
       if (attendeesError) throw attendeesError
-  
+
       // Then upload and insert images if any
       if (uploadedImages.length > 0) {
         for (const image of uploadedImages) {
           const fileExt = image.name.split(".").pop()
           const filePath = `${laagId}/${uuidv4()}.${fileExt}`
-  
+
           // Upload to storage bucket
-          const { error: uploadError } = await supabase.storage
-            .from("laags")
-            .upload(filePath, image)
-  
+          const { error: uploadError } = await supabase.storage.from("laags").upload(filePath, image)
+
           if (uploadError) throw uploadError
-  
+
           // Store in laagImages table
-          const { error: imageError } = await supabase
-            .from("laagImages")
-            .insert({
-              laag_id: laagId,
-              image: filePath
-            })
-  
+          const { error: imageError } = await supabase.from("laagImages").insert({
+            laag_id: laagId,
+            image: filePath,
+          })
+
           if (imageError) throw imageError
         }
       }
-  
+
       // After successful laag creation, create notification
-      const { error: notificationError } = await supabase
-        .from("laagNotifications")
-        .insert({
-          laag_id: laagId,
-          laag_status: values.status,
-          group_id: groupId 
-        });
-  
-      if (notificationError) throw notificationError;
-  
+      const { error: notificationError } = await supabase.from("laagNotifications").insert({
+        laag_id: laagId,
+        laag_status: values.status,
+        group_id: groupId,
+      })
+
+      if (notificationError) throw notificationError
+
       // Get the created notification
       const { data: notification } = await supabase
         .from("laagNotifications")
         .select("id")
         .eq("laag_id", laagId)
-        .single();
-  
+        .single()
+
       // Create notification reads for all attendees including organizer
-      const notificationReads = Array.from(allAttendees).map(attendeeId => ({
+      const notificationReads = Array.from(allAttendees).map((attendeeId) => ({
         notification_id: notification.id,
         user_id: attendeeId,
-        is_read: attendeeId === user.id // Mark as read for organizer
-      }));
-  
-      const { error: readsError } = await supabase
-        .from("laagNotificationReads")
-        .insert(notificationReads);
-  
-      if (readsError) throw readsError;
-  
+        is_read: attendeeId === user.id, // Mark as read for organizer
+      }))
+
+      const { error: readsError } = await supabase.from("laagNotificationReads").insert(notificationReads)
+
+      if (readsError) throw readsError
+
       toast.success("Laag created successfully")
       form.reset()
       setUploadedImages([])
@@ -269,7 +263,12 @@ export function CreateLaagDialog({
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="Unsa ni nga laag?" {...field} />
+                      <div className="space-y-1">
+                        <Input placeholder="Unsa ni nga laag?" maxLength={25} {...field} />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {field.value?.length || 0}/25 characters
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -283,7 +282,12 @@ export function CreateLaagDialog({
                   <FormItem>
                     <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <Input placeholder="Asa naman pud ni?" {...field} />
+                      <div className="space-y-1">
+                        <Input placeholder="Asa naman pud ni?" maxLength={50} {...field} />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {field.value?.length || 0}/50 characters
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -298,7 +302,18 @@ export function CreateLaagDialog({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <Textarea placeholder="Chika pa daw about ani nga laag!" {...field} />
+                    <div className="space-y-1">
+                      <Textarea
+                        placeholder="Chika pa daw about ani nga laag!"
+                        maxLength={250}
+                        className="resize-none whitespace-pre-wrap w-full"
+                        rows={4}
+                        {...field}
+                      />
+                      <div className="text-xs text-muted-foreground text-right">
+                        {field.value?.length || 0}/250 characters
+                      </div>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -345,12 +360,7 @@ export function CreateLaagDialog({
                   <FormItem>
                     <FormLabel>Status</FormLabel>
                     <FormControl>
-                      <Input 
-                        {...field} 
-                        value={status}
-                        disabled={true}
-                        className="bg-muted"
-                      />
+                      <Input {...field} value={status} disabled={true} className="bg-muted" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -394,16 +404,9 @@ export function CreateLaagDialog({
                         <FormControl>
                           <Button
                             variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                           >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -439,17 +442,10 @@ export function CreateLaagDialog({
                         <FormControl>
                           <Button
                             variant="outline"
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
+                            className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                             disabled={!form.getValues("when_start")}
                           >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
+                            {field.value ? format(field.value, "PPP") : <span>Pick a date</span>}
                             <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                           </Button>
                         </FormControl>
@@ -480,7 +476,7 @@ export function CreateLaagDialog({
                   {imagePreviews.map((preview, index) => (
                     <div key={index} className="relative aspect-square">
                       <Image
-                        src={preview}
+                        src={preview || "/placeholder.svg"}
                         alt={`Preview ${index + 1}`}
                         fill
                         className="rounded-lg object-cover"
@@ -498,13 +494,7 @@ export function CreateLaagDialog({
                   ))}
                   <label className="flex aspect-square cursor-pointer items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100">
                     <Upload className="h-8 w-8 text-gray-400" />
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={handleImageChange}
-                    />
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
                   </label>
                 </div>
               </div>
@@ -513,35 +503,33 @@ export function CreateLaagDialog({
             <div className="space-y-2">
               <FormLabel>Attendees</FormLabel>
               <div className="grid grid-cols-2 gap-4">
-                {members.filter((member, index, self) => 
-                  index === self.findIndex((m) => m.profile.id === member.profile.id)
-                ).map((member) => (
-                  <FormField
-                    key={member.profile.id}
-                    control={form.control}
-                    name="attendees"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center space-x-2">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value?.includes(member.profile.id)}
-                            onCheckedChange={(checked) => {
-                              const currentValue = field.value || []
-                              if (checked) {
-                                field.onChange([...currentValue, member.profile.id])
-                              } else {
-                                field.onChange(currentValue.filter(id => id !== member.profile.id))
-                              }
-                            }}
-                          />
-                        </FormControl>
-                        <FormLabel className="font-normal">
-                          {member.profile.full_name}
-                        </FormLabel>
-                      </FormItem>
-                    )}
-                  />
-                ))}
+                {members
+                  .filter((member, index, self) => index === self.findIndex((m) => m.profile.id === member.profile.id))
+                  .map((member) => (
+                    <FormField
+                      key={member.profile.id}
+                      control={form.control}
+                      name="attendees"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center space-x-2">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value?.includes(member.profile.id)}
+                              onCheckedChange={(checked) => {
+                                const currentValue = field.value || []
+                                if (checked) {
+                                  field.onChange([...currentValue, member.profile.id])
+                                } else {
+                                  field.onChange(currentValue.filter((id) => id !== member.profile.id))
+                                }
+                              }}
+                            />
+                          </FormControl>
+                          <FormLabel className="font-normal">{member.profile.full_name}</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
               </div>
             </div>
 

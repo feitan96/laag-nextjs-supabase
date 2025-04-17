@@ -202,19 +202,23 @@ const commentCount = filteredComments.length;
       </CardHeader>
 
       <CardContent className="pb-0">
-        <h3 className="text-xl font-semibold mb-2">{laag.what}</h3>
+        <h3 className="text-xl font-semibold mb-2 truncate" title={laag.what}>
+          {laag.what}
+        </h3>
         
         <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3">
           <MapPin className="h-4 w-4 flex-shrink-0" />
-          <span>{laag.where}</span>
+          <span className="truncate" title={laag.where}>{laag.where}</span>
         </div>
       
         {/* {laag.why && (
           <div className="mb-4">
-            <p className="whitespace-pre-wrap text-sm">{laag.why}</p>
+            <p className="whitespace-pre-wrap text-sm line-clamp-3" title={laag.why}>
+              {laag.why}
+            </p>
           </div>
         )} */}
-
+      
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="rounded-lg bg-muted/50 p-3 flex items-center gap-2">
             <DollarSign className="h-4 w-4 text-muted-foreground" />

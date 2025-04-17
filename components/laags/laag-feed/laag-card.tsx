@@ -157,7 +157,8 @@ const commentCount = filteredComments.length;
               View
             </Button>
           </Link>
-          {isOrganizer && (
+          {/* edit and delete if organizer */}
+          {/* {isOrganizer && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -197,7 +198,7 @@ const commentCount = filteredComments.length;
                 </AlertDialog>
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
+          )} */}
         </div>
       </CardHeader>
 

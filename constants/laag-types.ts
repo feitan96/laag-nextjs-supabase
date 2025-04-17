@@ -1,5 +1,11 @@
 import { LaagType } from "@/types/laag"
 
+export const LAAG_STATUS_TYPES = [
+  { value: "Planning", label: "Planning" },
+  { value: "Completed", label: "Completed" },
+  { value: "Cancelled", label: "Cancelled" },
+] as const
+
 export const LAAG_TYPES: { value: LaagType; label: string }[] = [
   { value: "Birthday Celebration", label: "Birthday Celebration" },
   { value: "Summer Vacation", label: "Summer Vacation" },

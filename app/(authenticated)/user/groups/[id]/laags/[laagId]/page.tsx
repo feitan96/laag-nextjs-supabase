@@ -18,10 +18,17 @@ import { toast } from "sonner"
 import { CommentCard } from "@/components/laags/comment-card"
 import { CompleteLaagDialog } from "@/components/laags/complete-laag-dialog"
 import { Laag } from "@/types"
-import { Textarea } from "@/components/ui/textarea"
 import { CommentInput } from "@/components/laags/comment-input"
 import { Slider } from "@/components/ui/slider"
 import { submitFunMeter, updateFunMeter } from "@/services/laags"
+
+import { MoreHorizontal, Edit, CheckCircle2, XCircle } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 function LaagImage({ imagePath }: { imagePath: string }) {
   const imageUrl = useLaagImage(imagePath)
@@ -333,44 +340,79 @@ export default function LaagDetails() {
           <Button variant="ghost" size="icon" onClick={() => window.history.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <h1 className="text-3xl font-bold">{laag.what}</h1>
+          <h1 className="text-3xl md:text-4xl font-bold line-clamp-1">{laag.what}</h1>
         </div>
         {isOrganizer && (
-          <div className="flex items-center gap-2">
-            {laag.status === "Planning" && (
-              <>
-                <Button variant="outline" onClick={() => setShowCompleteDialog(true)}>
-                  Complete Laag
-                </Button>
-                <Button variant="destructive" onClick={handleCancelLaag}>
-                  Cancel Laag
-                </Button>
-              </>
-            )}
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="sm">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Laag
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Laag</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete this laag? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreHorizontal className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {laag.status === "Planning" && (
+                <>
+                  <DropdownMenuItem onClick={() => setShowCompleteDialog(true)}>
+                    <CheckCircle2 className="h-4 w-4 mr-2" />
+                    Complete Laag
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-red-600"
+                    onClick={handleCancelLaag}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Cancel Laag
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuItem
+                className="text-red-600"
+                onClick={() => {
+                  const dialog = document.querySelector("[role='alertdialog']");
+                  if (dialog) {
+                    (dialog as HTMLElement).style.width = "90%";
+                    (dialog as HTMLElement).style.maxWidth = "380px";
+                  }
+                  document.querySelector<HTMLButtonElement>("[data-delete-trigger]")?.click();
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Laag
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
+
+        {/* Hidden AlertDialog for delete confirmation */}
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="hidden"
+              data-delete-trigger
+            >
+              Delete
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="w-[90%] sm:max-w-[425px]">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Laag</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this laag? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

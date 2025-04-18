@@ -401,7 +401,7 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   name="actual_cost"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Actual Cost (Optional)</FormLabel>
+                      <FormLabel>Actual Cost</FormLabel>
                       <FormControl>
                         <Input type="number" step="0.01" placeholder="0.00" {...field} />
                       </FormControl>

@@ -160,7 +160,7 @@ export function NotificationsDropdown({ userId }: { userId: string }) {
 
     // Determine the route based on laag privacy
     const route = notification.notification.laag.privacy === "public"
-      ? `/user/laags/${notification.notification.laag_id}`
+      ? `/user/groups/${notification.notification.group_id}/laags/${notification.notification.laag_id}?from=group`
       : `/user/groups/${notification.notification.group_id}/laags/${notification.notification.laag_id}?from=group`;
 
     // Navigate to the laag details

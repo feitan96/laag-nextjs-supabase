@@ -50,16 +50,16 @@ function UpcomingLaagRow({ laag }: { laag: UpcomingLaag }) {
             <Users className="h-5 w-5 text-primary" />
           )}
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+          <div>
             <p className="font-semibold truncate text-sm">{laag.group.group_name}</p>
-            <Badge variant="outline" className="shrink-0 text-xs">
-              {laag.type}
-            </Badge>
+            <p className="text-xs text-muted-foreground truncate">
+              {laag.what.length > 10 ? `${laag.what.substring(0, 10)}...` : laag.what}
+            </p>
           </div>
-          <p className="text-xs text-muted-foreground truncate">
-            {laag.what.length > 10 ? `${laag.what.substring(0, 10)}...` : laag.what}
-          </p>
+          <Badge variant="outline" className="shrink-0 text-xs">
+            {laag.type}
+          </Badge>
         </div>
       </div>
       <Separator className="my-1.5" />

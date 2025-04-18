@@ -13,7 +13,7 @@ const AuthenticatedLayout = memo(function AuthenticatedLayout({
       <div className="flex min-h-screen w-full flex-col">
         <NavGlobal />
         {/* <main className="flex flex-1 items-center justify-center overflow-x-hidden"> */}
-        <main className="flex flex-1 items-center justify-center">
+        <main className="flex flex-1 justify-center">
           <div className="w-full max-w-7xl">
             {children}
           </div>

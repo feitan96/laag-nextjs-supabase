@@ -104,7 +104,7 @@ export default function AccountForm() {
 
   return (
     <div className="w-full">
-      <PageHeader title="Account Settings" description="Manage your profile information" showBackButton backUrl="/dashboard" />
+      {/* <PageHeader title="Account Settings" description="Manage your profile information" showBackButton backUrl="/dashboard" /> */}
 
       <Card className="mt-8">
         <CardHeader>

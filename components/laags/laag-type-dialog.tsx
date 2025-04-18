@@ -25,42 +25,42 @@ export function LaagTypeDialog({ onSelect }: LaagTypeDialogProps) {
           Create Laag
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="w-[90%] sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Laag</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-lg sm:text-xl">Create New Laag</DialogTitle>
+          <DialogDescription className="text-sm">
             Choose whether you want to plan a new laag or post an already completed one.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-3 py-3">
           <Button
             variant="outline"
-            className="h-24"
+            className="h-auto py-4 px-3"
             onClick={() => {
               onSelect("planning")
               setOpen(false)
             }}
           >
-            <div className="flex flex-col items-center gap-2">
-              <Plus className="h-6 w-6" />
-              <span>Plan a New Laag</span>
-              <span className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center gap-1.5">
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-medium">Plan a New Laag</span>
+              <span className="text-xs text-muted-foreground text-center">
                 Create a laag that you&apos;re planning to do
               </span>
             </div>
           </Button>
           <Button
             variant="outline"
-            className="h-24"
+            className="h-auto py-4 px-3"
             onClick={() => {
               onSelect("completed")
               setOpen(false)
             }}
           >
-            <div className="flex flex-col items-center gap-2">
-              <Plus className="h-6 w-6" />
-              <span>Post Completed Laag</span>
-              <span className="text-sm text-muted-foreground">
+            <div className="flex flex-col items-center gap-1.5">
+              <Plus className="h-5 w-5" />
+              <span className="text-sm font-medium">Post Completed Laag</span>
+              <span className="text-xs text-muted-foreground text-center">
                 Share a laag that you&apos;ve already completed
               </span>
             </div>
@@ -69,4 +69,4 @@ export function LaagTypeDialog({ onSelect }: LaagTypeDialogProps) {
       </DialogContent>
     </Dialog>
   )
-} 
+}

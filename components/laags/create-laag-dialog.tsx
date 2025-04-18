@@ -39,7 +39,7 @@ import { Check, ChevronsUpDown, User } from "lucide-react"
 import { useAvatar } from "@/hooks/useAvatar"
 
 const formSchema = z.object({
-  what: z.string().min(1, "What is required").max(25, "Title cannot exceed 25 characters"),
+  what: z.string().min(1, "What is required").max(50, "Title cannot exceed 50 characters"),
   where: z.string().min(1, "Where is required").max(50, "Location cannot exceed 50 characters"),
   why: z.string().max(250, "Description cannot exceed 250 characters").optional(),
   type: z.string().min(1, "Type is required"),
@@ -285,9 +285,9 @@ export function CreateLaagDialog({
                     <FormLabel>Title</FormLabel>
                     <FormControl>
                       <div className="space-y-1">
-                        <Input placeholder="Unsa ni nga laag?" maxLength={25} {...field} />
+                        <Input placeholder="Unsa ni nga laag?" maxLength={50} {...field} />
                         <div className="text-xs text-muted-foreground text-right">
-                          {field.value?.length || 0}/25 characters
+                          {field.value?.length || 0}/50 characters
                         </div>
                       </div>
                     </FormControl>

@@ -41,26 +41,28 @@ function NotificationCard({ notification, onClick, isUnread }: NotificationCardP
   return (
     <DropdownMenuItem
       key={notification.id}
-      className={`p-4 ${isUnread ? 'bg-muted/50' : ''}`}
+      className={`p-3 ${isUnread ? 'bg-muted/50' : ''}`}
       onClick={onClick}
     >
-      <div className="flex gap-4">
-        <Avatar className="h-10 w-10 border">
+      <div className="flex gap-3 max-w-[calc(320px-2rem)]">
+        <Avatar className="h-8 w-8 flex-shrink-0 border">
           <AvatarImage src={organizerAvatarUrl || undefined} />
           <AvatarFallback>
             {notification.notification.laag.organizer.full_name.charAt(0)}
           </AvatarFallback>
         </Avatar>
-        <div className="space-y-1 flex-1">
-          <p className="text-sm">
+        <div className="space-y-1 min-w-0 flex-1">
+          <p className="text-sm leading-tight break-words">
             <span className="font-medium">
               {notification.notification.laag.organizer.full_name}
             </span>{" "}
             {getNotificationMessage(notification.notification.laag_status)}
-            <span className="font-medium"> {notification.notification.laag.what}</span>
+            <span className="font-medium"> {notification.notification.laag.what.length > 15 
+              ? `${notification.notification.laag.what.slice(0, 15)}...` 
+              : notification.notification.laag.what}</span>
           </p>
           <div className="flex items-center gap-2">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground truncate">
               in <span className="font-medium">{notification.notification.group.group_name}</span>
             </p>
           </div>

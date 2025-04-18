@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { LaagTypeDialog } from "../../../../../components/laags/laag-type-dialog"
 import { GroupMembersCard } from "@/components/groups/group-members-card"
+import { MobileGroupMembers } from "@/components/groups/mobile-group-members"
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -330,7 +331,7 @@ export default function GroupFeed() {
           </div>
 
           {/* Right Sub Content - Sticky */}
-          <div className="h-full">
+          <div className="h-full hidden md:block">
             <GroupMembersCard 
               owner={group.owner}
               members={activeMembers}
@@ -340,6 +341,13 @@ export default function GroupFeed() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Members Button & Dialog */}
+      <MobileGroupMembers
+        owner={group.owner}
+        members={activeMembers}
+        totalMembers={group.no_members}
+      />
 
       {/* Modals */}
       <EditGroupModal

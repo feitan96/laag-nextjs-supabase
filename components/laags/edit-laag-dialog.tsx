@@ -38,7 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 
 const formSchema = z.object({
-  what: z.string().min(1, "What is required").max(25, "Title cannot exceed 25 characters"),
+  what: z.string().min(1, "What is required").max(50, "Title cannot exceed 50 characters"),
   where: z.string().min(1, "Where is required").max(50, "Location cannot exceed 50 characters"),
   why: z.string().max(250, "Description cannot exceed 250 characters").optional(),
   type: z.string().min(1, "Type is required"),
@@ -324,7 +324,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   <FormItem>
                     <FormLabel>Title</FormLabel>
                     <FormControl>
-                      <Input placeholder="What are you planning?" {...field} />
+                      <div className="space-y-1">
+                        <Input placeholder="Unsa ni nga laag?" maxLength={50} {...field} />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {field.value?.length || 0}/50 characters
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -338,7 +343,12 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                     <FormItem>
                       <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="Where will it happen?" {...field} />
+                        <div className="space-y-1">
+                          <Input placeholder="Asa naman pud ni?" maxLength={50} {...field} />
+                          <div className="text-xs text-muted-foreground text-right">
+                            {field.value?.length || 0}/50 characters
+                          </div>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -353,7 +363,18 @@ export function EditLaagDialog({ laag, members, onLaagUpdated }: EditLaagDialogP
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="What are some more details about this laag?" {...field} />
+                      <div className="space-y-1">
+                        <Textarea
+                          placeholder="Chika pa daw about ani nga laag!"
+                          maxLength={250}
+                          className="resize-none whitespace-pre-wrap w-full"
+                          rows={4}
+                          {...field}
+                        />
+                        <div className="text-xs text-muted-foreground text-right">
+                          {field.value?.length || 0}/250 characters
+                        </div>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

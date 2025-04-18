@@ -10,6 +10,7 @@ import { FeedLayout } from "@/components/layout/feed-layout"
 import { FeedLoading } from "@/components/layout/feed-loading"
 import { FeedEmpty } from "@/components/layout/feed-empty"
 import { GroupsCard, type Group } from "@/components/groups/my-groups-card"
+import { UpcomingLaagsCard } from "@/components/laags/upcoming-laags-card"
 
 export default function PublicFeed() {
   const [laags, setLaags] = useState<Laag[]>([])
@@ -110,11 +111,18 @@ export default function PublicFeed() {
     </div>
   )
 
+  const leftSidebar = (
+    <div className="space-y-6">
+      <ProfileCard />
+      <GroupsCard userGroups={userGroups} />
+    </div>
+  )
+
   return (
     <FeedLayout
-      leftSidebar={<ProfileCard />}
+      leftSidebar={leftSidebar}
       mainContent={mainContent}
-      rightSidebar={<GroupsCard userGroups={userGroups} />}
+      rightSidebar={<UpcomingLaagsCard />}
     />
   )
 }

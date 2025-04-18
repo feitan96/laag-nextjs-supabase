@@ -52,7 +52,7 @@ export function FeedLayout({ leftSidebar, mainContent, rightSidebar }: FeedLayou
         <div className="grid grid-cols-1 md:grid-cols-[300px_632px_300px] gap-6 h-full w-full justify-center max-w-[1400px] mx-auto px-4">
           {/* Left Sidebar - Sticky */}
           <div className="h-full hidden md:block">
-            <div className="sticky top-4 pt-4">{leftSidebar}</div>
+            <div className="sticky top-4 pt-4 space-y-6">{leftSidebar}</div>
           </div>
 
           {/* Center Main Content - Scrollable */}

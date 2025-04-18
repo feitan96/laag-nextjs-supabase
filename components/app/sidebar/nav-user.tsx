@@ -3,8 +3,6 @@
 
 import {
   BadgeCheck,
-  Bell,
-  ChevronsUpDown,
   LogOut,
 } from "lucide-react"
 
@@ -33,6 +31,7 @@ import { useAvatar } from "@/hooks/useAvatar"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/utils/supabase/client"
 import { useCallback, useMemo, memo } from "react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 const supabase = createClient()
 
@@ -59,15 +58,23 @@ const NavUser = memo(function NavUser() {
   }, [router])
 
   const userDisplayName = useMemo(() => {
-    return profile?.username || user?.email
-  }, [profile?.username, user?.email])
+    return profile?.full_name || user?.email?.split('@')[0] || "User"
+  }, [profile?.full_name, user?.email])
 
   const userInitial = useMemo(() => {
-    return (profile?.username?.charAt(0) || user?.email?.charAt(0) || "U").toUpperCase()
-  }, [profile?.username, user?.email])
+    return (profile?.full_name?.charAt(0) || user?.email?.charAt(0) || "U").toUpperCase()
+  }, [profile?.full_name, user?.email])
 
   if (isLoading) {
-    return <div>Loading...</div>
+    return (
+      <SidebarMenu>
+        <SidebarMenuItem>
+          <SidebarMenuButton size="lg">
+            <Skeleton className="h-8 w-8 rounded-lg" />
+          </SidebarMenuButton>
+        </SidebarMenuItem>
+      </SidebarMenu>
+    )
   }
 
   return (
@@ -103,7 +110,7 @@ const NavUser = memo(function NavUser() {
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
+                {/* <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage
                     src={avatarUrl || undefined}
                     alt={userDisplayName || "User"}
@@ -111,7 +118,7 @@ const NavUser = memo(function NavUser() {
                   <AvatarFallback className="rounded-lg">
                     {userInitial}
                   </AvatarFallback>
-                </Avatar>
+                </Avatar> */}
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{userDisplayName}</span>
                   <span className="truncate text-xs">{user?.email}</span>
@@ -124,12 +131,12 @@ const NavUser = memo(function NavUser() {
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              {/* <DropdownMenuItem>
                 <Bell />
                 Notifications
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            {/* <DropdownMenuSeparator /> */}
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut />
               Log out
@@ -140,8 +147,6 @@ const NavUser = memo(function NavUser() {
     </SidebarMenu>
   )
 }, (prevProps, nextProps) => {
-  // Since this component doesn't take any props, we can always return true
-  // to prevent re-renders based on parent re-renders
   return true
 })
 

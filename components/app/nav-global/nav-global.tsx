@@ -8,22 +8,23 @@ import Image from "next/image"
 import { useTheme } from "next-themes" // Add this import
 import { NotificationsDropdown } from "./notifications-dropdown"
 import { SearchLaags } from "./search-laags"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { NavUser } from "../sidebar/nav-user"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/app/context/auth-context"
 
 const projects = [
-  {
-    name: "Feed",
-    url: "/user/feed",
-    icon: Map,
-  },
-  {
-    name: "Groups",
-    url: "/user/groups",
-    icon: UsersRound,
-  },
+  // {
+  //   name: "Feed",
+  //   url: "/user/feed",
+  //   icon: Map,
+  // },
+  // {
+  //   name: "Groups",
+  //   url: "/user/groups",
+  //   icon: UsersRound,
+  // },
   // {
   //   name: "Dashboard",
   //   url: "/dashboard",
@@ -54,7 +55,10 @@ export function NavGlobal() {
         {/* Left section - Logo and Navigation */}
         <div className="flex items-center gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div 
+            className="flex items-center gap-2 cursor-pointer" 
+            onClick={() => router.push('/user/feed')}
+          >
             <div className="relative h-8 w-8">
               {mounted && (
                 <>
@@ -98,14 +102,25 @@ export function NavGlobal() {
         </div>
 
         {/* Center section - Search */}
-        <div className="hidden md:block flex-1 px-6">
-          <SearchLaags />
+        <div className="flex-1 px-6 flex justify-center">
+          <div className="w-full max-w-md">
+            <SearchLaags />
+          </div>
         </div>
 
         {/* Right section - User Menu */}
         <div className="flex items-center gap-4">
-          {user && <NotificationsDropdown userId={user.id} />}
-          <NavUser />
+          {!mounted ? (
+            <>
+              <Skeleton className="h-8 w-8 rounded-full" />
+              <Skeleton className="h-8 w-8 rounded-lg" />
+            </>
+          ) : (
+            <>
+              {user && <NotificationsDropdown userId={user.id} />}
+              <NavUser />
+            </>
+          )}
         </div>
       </div>
     </nav>

@@ -16,9 +16,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAvatar } from "@/hooks/useAvatar"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
-import { Search } from "lucide-react"
-import Image from "next/image"
-
+import { Search, Users } from "lucide-react"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface Profile {
   id: string
@@ -51,7 +50,17 @@ function MemberAvatar({ avatarUrl, fullName }: { avatarUrl: string | null; fullN
   )
 }
 
+// Add to imports
+
 export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated, ownerId }: ManageMembersDialogProps) {
+  // Add new state for confirmation dialogs
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'add' | 'remove';
+    profileId?: string;
+    memberId?: string;
+    name?: string;
+  } | null>(null)
+
   const [currentMembers, setCurrentMembers] = useState<GroupMember[]>([])
   const [availableProfiles, setAvailableProfiles] = useState<Profile[]>([])
   const [owner, setOwner] = useState<Profile | null>(null)
@@ -142,179 +151,210 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
     }
   }
 
-  const handleAddMember = async (profileId: string) => {
+  // Update handleAddMember to use confirmation
+  const handleAddMember = async (profileId: string, name: string) => {
+    setConfirmAction({ type: 'add', profileId, name })
+  }
+
+  // Update handleRemoveMember to use confirmation
+  const handleRemoveMember = async (memberId: string, name: string) => {
+    setConfirmAction({ type: 'remove', memberId, name })
+  }
+
+  // Add new function to handle confirmed actions
+  const handleConfirmedAction = async () => {
+    if (!confirmAction) return
+
     try {
-      // Check if member already exists in this group (including removed ones)
-      const { data: existingRecords, error: fetchError } = await supabase
-        .from("groupMembers")
-        .select("id, is_removed")
-        .eq("group_id", groupId)
-        .eq("group_member", profileId)
-        .order("created_at", { ascending: false }) // Get most recent record first
-        .limit(1)
-  
-      if (fetchError) throw fetchError
-  
-      if (existingRecords && existingRecords.length > 0) {
-        // Update existing record
-        const { error: updateError } = await supabase
+      if (confirmAction.type === 'add' && confirmAction.profileId) {
+        // Check if member already exists in this group (including removed ones)
+        const { data: existingRecords, error: fetchError } = await supabase
           .from("groupMembers")
-          .update({ 
-            is_removed: false,
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", existingRecords[0].id)
+          .select("id, is_removed")
+          .eq("group_id", groupId)
+          .eq("group_member", confirmAction.profileId)  // Changed this line
+          .order("created_at", { ascending: false })
+          .limit(1)
   
-        if (updateError) throw updateError
-        toast.success("Member re-added successfully")
-      } else {
-        // Create new record if no existing ones
-        const { error: insertError } = await supabase
+        if (fetchError) throw fetchError
+  
+        if (existingRecords && existingRecords.length > 0) {
+          const { error: updateError } = await supabase
+            .from("groupMembers")
+            .update({ 
+              is_removed: false,
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", existingRecords[0].id)
+  
+          if (updateError) throw updateError
+          toast.success("Member re-added successfully")
+        } else {
+          const { error: insertError } = await supabase
+            .from("groupMembers")
+            .insert({
+              group_id: groupId,
+              group_member: confirmAction.profileId,  // Changed this line
+              is_removed: false
+            })
+  
+          if (insertError) throw insertError
+          toast.success("New member added successfully")
+        }
+  
+        await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
+        onMembersUpdated()
+      } else if (confirmAction.type === 'remove' && confirmAction.memberId) {
+        await supabase
           .from("groupMembers")
-          .insert({
-            group_id: groupId,
-            group_member: profileId,
-            is_removed: false
-          })
-  
-        if (insertError) throw insertError
-        toast.success("New member added successfully")
+          .update({ is_removed: true })
+          .eq("id", confirmAction.memberId)
+
+        toast.success("Member removed successfully")
+        await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
+        onMembersUpdated()
       }
-  
-      await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
-      onMembersUpdated()
     } catch (error) {
       console.error("Error managing member:", error)
-      toast.error(`Failed to ${existingRecords?.length ? "re-add" : "add"} member`)
+      toast.error(`Failed to ${confirmAction.type} member`)
+    } finally {
+      setConfirmAction(null)
     }
   }
 
-  const handleRemoveMember = async (memberId: string) => {
-    try {
-      await supabase
-        .from("groupMembers")
-        .update({ is_removed: true })
-        .eq("id", memberId)
-
-      toast.success("Member removed successfully")
-      await Promise.all([fetchCurrentMembers(), fetchAvailableProfiles()])
-      onMembersUpdated()
-    } catch (error) {
-      console.error("Error removing member:", error)
-      toast.error("Failed to remove member")
-    }
-  }
-
-  // Filter available profiles based on search query
-  const filteredAvailableProfiles = availableProfiles.filter(profile => 
+  // Add this computed value before the return statement
+  const filteredAvailableProfiles = availableProfiles.filter(profile =>
     profile.full_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px]">
-        <DialogHeader>
-          <DialogTitle>Manage Group Members</DialogTitle>
-          <DialogDescription>Add or remove members from your group.</DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] md:max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Manage Group Members</DialogTitle>
+            <DialogDescription>Add or remove members from your group.</DialogDescription>
+          </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Current Members - Left Side */}
-          <div>
-            <h3 className="mb-2 text-sm font-medium">Current Members</h3>
-            <ScrollArea className="h-[400px] rounded-md border p-4">
-              {/* Owner Section */}
-              {owner && (
-                <div className="flex items-center justify-between py-2 border-b mb-2">
-                  <div className="flex items-center gap-3">
-                    <MemberAvatar avatarUrl={owner.avatar_url} fullName={owner.full_name} />
-                    <div className="flex flex-col">
-                      <span className="font-medium">{owner.full_name}</span>
-                      <span className="text-xs text-muted-foreground">Group Owner</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Regular Members */}
-              {currentMembers
-                .filter(member => member.group_member !== ownerId)
-                .map((member) => (
-                  <div key={member.id} className="flex items-center justify-between py-2">
-                    <div className="flex items-center gap-3">
-                      <MemberAvatar avatarUrl={member.profile.avatar_url} fullName={member.profile.full_name} />
-                      <span>{member.profile.full_name}</span>
-                    </div>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => handleRemoveMember(member.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                ))}
-            </ScrollArea>
-          </div>
-
-          {/* Add Members - Right Side */}
-          <div>
-            <h3 className="mb-2 text-sm font-medium">Add Members</h3>
-            <div className="relative mb-2">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search users..."
-                className="pl-8"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <ScrollArea className="h-[400px] rounded-md border p-4">
-              {filteredAvailableProfiles.length > 0 ? (
-                filteredAvailableProfiles
-                  .filter(profile => profile.id !== ownerId)
-                  .map((profile) => (
-                    <div key={profile.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3">
-                        <MemberAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} />
-                        <span>{profile.full_name}</span>
+          <div className="flex-1 overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Current Members - Left Side */}
+              <div className="flex flex-col">
+                <h3 className="mb-2 text-sm font-medium">Current Members ({currentMembers.length + 1})</h3>
+                <ScrollArea className="h-[300px] md:h-[400px] w-full rounded-md border">
+                  <div className="p-4">
+                    {/* Owner Section */}
+                    {owner && (
+                      <div className="flex items-center justify-between py-2 border-b mb-4">
+                        <div className="flex items-center gap-3">
+                          <MemberAvatar avatarUrl={owner.avatar_url} fullName={owner.full_name} />
+                          <div className="flex flex-col">
+                            <span className="font-medium">{owner.full_name}</span>
+                            <span className="text-xs text-muted-foreground">Group Owner</span>
+                          </div>
+                        </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleAddMember(profile.id)}
-                      >
-                        Add
-                      </Button>
-                    </div>
-                  ))
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full py-8">
-                  <div className="relative w-48 h-48 mb-4">
-                    <Image
-                      src="/no-users.svg" // Make sure to add this SVG to your public folder
-                      alt="No users available"
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                  <p className="text-muted-foreground text-center">
-                    {searchQuery ? 
-                      "No users match your search" : 
-                      "No available users to add"}
-                  </p>
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-        </div>
+                    )}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+                    {/* Regular Members */}
+                    <div className="space-y-3">
+                      {currentMembers.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <Users className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="text-sm font-medium">No members yet</p>
+                          <p className="text-xs text-muted-foreground">Add members to your group</p>
+                        </div>
+                      ) : (
+                        currentMembers
+                          .filter(member => member.group_member !== ownerId)
+                          .map((member) => (
+                            <div key={member.id} className="flex items-center justify-between py-2">
+                              <div className="flex items-center gap-3">
+                                <MemberAvatar avatarUrl={member.profile.avatar_url} fullName={member.profile.full_name} />
+                                <span>{member.profile.full_name}</span>
+                              </div>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveMember(member.id, member.profile.full_name)}
+                              >
+                                Remove
+                              </Button>
+                            </div>
+                          ))
+                    )}
+                  </div>
+                  </div>
+                </ScrollArea>
+              </div>
+
+              {/* Add Members - Right Side */}
+              <div className="flex flex-col">
+                <h3 className="mb-2 text-sm font-medium">Add Members ({filteredAvailableProfiles.length})</h3>
+                <div className="relative mb-2">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search users..."
+                    className="pl-8"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <ScrollArea className="h-[300px] md:h-[400px] w-full rounded-md border">
+                  <div className="p-4">
+                    <div className="space-y-3">
+                      {filteredAvailableProfiles.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                          <Search className="h-10 w-10 text-muted-foreground mb-2" />
+                          <p className="text-sm font-medium">No users found</p>
+                          <p className="text-xs text-muted-foreground">
+                            {searchQuery 
+                              ? `No results for "${searchQuery}"`
+                              : "No users available to add"}
+                          </p>
+                        </div>
+                      ) : (
+                        filteredAvailableProfiles
+                          .filter(profile => profile.id !== ownerId)
+                          .map((profile) => (
+                            <div key={profile.id} className="flex items-center justify-between py-2">
+                              <div className="flex items-center gap-3">
+                                <MemberAvatar avatarUrl={profile.avatar_url} fullName={profile.full_name} />
+                                <span>{profile.full_name}</span>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleAddMember(profile.id, profile.full_name)}
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          ))
+                    )}
+                  </div>
+                  </div>
+                </ScrollArea>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={handleConfirmedAction}
+        title={`${confirmAction?.type === 'add' ? 'Add' : 'Remove'} Member`}
+        description={`Are you sure you want to ${confirmAction?.type === 'add' ? 'add' : 'remove'} ${confirmAction?.name} ${confirmAction?.type === 'add' ? 'to' : 'from'} the group?`}
+        confirmText={confirmAction?.type === 'add' ? 'Add' : 'Remove'}
+      />
+    </>
   )
-} 
+}

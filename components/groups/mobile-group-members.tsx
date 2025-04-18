@@ -31,11 +31,11 @@ export function MobileGroupMembers({ owner, members, totalMembers }: MobileGroup
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="h-[80vh] p-0 gap-0">
-          <DialogHeader className="px-4 py-2">
+        <DialogContent className="h-[80vh] p-0">
+          <DialogHeader className="px-4 pt-6 pb-4">
             <DialogTitle>Group Members</DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto px-2">
             <GroupMembersCard
               owner={owner}
               members={members}

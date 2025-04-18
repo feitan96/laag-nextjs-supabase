@@ -6,11 +6,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { useAvatar } from "@/hooks/useAvatar"
 import { format } from "date-fns"
-import { EditLaagDialog } from "../edit-laag-dialog"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { CalendarRange, MapPin, DollarSign, Smile, Clock, MoreHorizontal, Trash2, MessageSquare } from "lucide-react"
+import { CalendarRange, MapPin, DollarSign, Smile, Clock, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Link from "next/link"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
@@ -20,7 +18,7 @@ import { ImageGallery } from "../image-gallery"
 import { CommentCard } from "../comment-card"
 import { CommentInput } from "../comment-input"
 import { Slider } from "@/components/ui/slider"
-import { submitFunMeter, updateFunMeter, deleteFunMeter } from "@/services/laags"
+import { submitFunMeter, updateFunMeter } from "@/services/laags"
 import { cn } from "@/lib/utils"
 
 
@@ -42,6 +40,7 @@ export function LaagCard({ laag, members = [] }: LaagCardProps) {
   const [showFunMeter, setShowFunMeter] = useState(false)
   const [funMeterValue, setFunMeterValue] = useState<number>(0)
   const [userFunMeter, setUserFunMeter] = useState<any>(null)
+  const [displayedCommentsCount, setDisplayedCommentsCount] = useState(5)
   const supabase = createClient()
 
   const getLaagViewLink = () => {
@@ -353,16 +352,26 @@ const commentCount = filteredComments.length;
               isSubmitting={isSubmitting}
             />
           )}
-
           {showAllComments && filteredComments.length > 0 && (
             <div className="border-t pt-4 space-y-4">
-              {filteredComments.map((comment) => (
+              {filteredComments.slice(0, displayedCommentsCount).map((comment) => (
                 <CommentCard
                   key={comment.id}
                   comment={comment}
                   onDelete={() => window.location.reload()}
                 />
               ))}
+              
+              {filteredComments.length > displayedCommentsCount && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full text-muted-foreground hover:text-foreground"
+                  onClick={() => setDisplayedCommentsCount(prev => prev + 10)}
+                >
+                  Load more comments ({filteredComments.length - displayedCommentsCount} remaining)
+                </Button>
+              )}
             </div>
           )}
         </div>

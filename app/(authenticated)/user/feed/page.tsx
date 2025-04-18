@@ -3,9 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import type { Laag } from "@/types"
-import { LaagCard } from "@/components/laags/laag-feed/laag-card"
 import { LaagFeed } from "@/components/laags/laag-feed"
-import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/context/auth-context"
 import { ProfileCard } from "@/components/app/profile-card"
 import { FeedLayout } from "@/components/layout/feed-layout"
@@ -19,7 +17,6 @@ export default function PublicFeed() {
   const [userGroups, setUserGroups] = useState<Group[]>([])
   const [groupsLoading, setGroupsLoading] = useState(true)
   const supabase = createClient()
-  const router = useRouter()
   const { user } = useAuth()
 
   useEffect(() => {
@@ -106,7 +103,6 @@ export default function PublicFeed() {
     return <FeedEmpty rightSidebar={<GroupsCard userGroups={userGroups} />} />
   }
 
-  // Prepare the main content
   const mainContent = (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Public Laags</h1>

@@ -204,6 +204,9 @@ export function LaagFeed({ groupId, laags: initialLaags, members: initialMembers
           {filteredLaags.map((laag) => (
             <LaagCard key={laag.id} laag={laag} members={members} />
           ))}
+          <p className="text-center text-muted-foreground text-sm py-4">
+            That&apos;s all the laags for today
+          </p>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-12 space-y-4">

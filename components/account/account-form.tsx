@@ -152,7 +152,7 @@ export default function AccountForm() {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <Label htmlFor="website">Website</Label>
               <Input
                 id="website"
@@ -161,7 +161,7 @@ export default function AccountForm() {
                 onChange={(e) => setWebsite(e.target.value)}
                 placeholder="https://example.com"
               />
-            </div>
+            </div> */}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 sm:flex-row sm:justify-between sm:space-y-0">

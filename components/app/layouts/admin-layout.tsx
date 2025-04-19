@@ -1,0 +1,90 @@
+"use client"
+
+import { Button } from "@/components/ui/button"
+import {
+  LayoutDashboard,
+  Users,
+  Map,
+  Group,
+  LogOut
+} from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { cn } from "@/lib/utils"
+import { NavAdmin } from "../sidebar/nav-admin"
+import { use } from "react"
+
+const sidebarNavItems = [
+  {
+    title: "Dashboard",
+    href: "/admin",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Users",
+    href: "/admin/users",
+    icon: Users,
+  },
+  {
+    title: "Laags",
+    href: "/admin/laags",
+    icon: Map,
+  },
+  {
+    title: "Groups",
+    href: "/admin/groups",
+    icon: Group,
+  },
+]
+
+export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+
+  return (
+    <div className="flex min-h-screen">
+      {/* Sidebar */}
+      <div className="flex w-64 flex-col border-r bg-background">
+        {/* Logo */}
+        <div className="flex h-14 items-center border-b px-6">
+          <Link href="/admin" className="flex items-center gap-2 font-semibold">
+            <img src="/logo.png" alt="Logo" className="h-6 w-6" />
+            <span>Laag Admin</span>
+          </Link>
+        </div>
+
+        {/* Nav Links */}
+        <div className="flex-1 px-4 py-4">
+          <nav className="space-y-2">
+            {sidebarNavItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium",
+                  pathname === item.href
+                    ? "bg-secondary text-secondary-foreground"
+                    : "hover:bg-secondary/50"
+                )}
+              >
+                <item.icon className="h-4 w-4" />
+                {item.title}
+              </Link>
+            ))}
+          </nav>
+        </div>
+
+        {/* User Section */}
+        <div className="border-t p-4">
+          <NavAdmin />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1">
+        <div className="h-full p-8">
+          {children}
+        </div>
+      </div>
+    </div>
+  )
+}

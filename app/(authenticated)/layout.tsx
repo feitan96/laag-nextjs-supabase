@@ -1,26 +1,9 @@
-// app/(authenticated)/layout.tsx
-import { NavGlobal } from "@/components/app/nav-global/nav-global"
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { memo } from "react"
+import { RoleBasedLayout } from "@/components/app/layouts/role-based-layout"
 
-const AuthenticatedLayout = memo(function AuthenticatedLayout({
+export default function AuthenticatedLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-col">
-        <NavGlobal />
-        {/* <main className="flex flex-1 items-center justify-center overflow-x-hidden"> */}
-        <main className="flex flex-1 justify-center">
-          <div className="w-full max-w-7xl">
-            {children}
-          </div>
-        </main>
-      </div>
-    </SidebarProvider>
-  )
-})
-
-export default AuthenticatedLayout
+  return <RoleBasedLayout>{children}</RoleBasedLayout>
+}

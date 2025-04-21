@@ -4,13 +4,18 @@ import { NavGlobal } from "@/components/app/nav-global/nav-global"
 import { AdminLayout } from "@/components/app/layouts/admin-layout"
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { useRole } from "@/hooks/useRole"
-import { redirect } from "next/navigation"
+import { redirect, usePathname } from "next/navigation"
+import { AdminLoadingLayout, UserLoadingLayout } from "./loading-layouts"
 
 export function RoleBasedLayout({ children }: { children: React.ReactNode }) {
   const { role, loading } = useRole()
+  const pathname = usePathname()
 
   if (loading) {
-    return <div>Loading...</div>
+    // Show appropriate loading layout based on the current path
+    return pathname.startsWith('/admin') 
+      ? <AdminLoadingLayout /> 
+      : <UserLoadingLayout />
   }
 
   if (!role) {

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
 import { useParams } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Users, Edit2, Settings, User2 } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
@@ -18,10 +17,11 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/app/context/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { LaagTypeDialog } from "../../../../../components/laags/laag-type-dialog"
 import { GroupMembersCard } from "@/components/groups/group-members-card"
 import { MobileGroupMembers } from "@/components/groups/mobile-group-members"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import GroupAnalytics from "@/components/groups/analytics/group-analytics"
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -45,6 +45,15 @@ const scrollbarStyles = `
   /* Prevent body scrolling */
   body {
     overflow: hidden;
+  }
+`
+
+const tabActionStyles = `
+  .activities-tab-actions {
+    display: block;
+  }
+  [data-state="inactive"][data-value="activities"] ~ .activities-tab-actions {
+    display: none;
   }
 `
 
@@ -174,9 +183,9 @@ export default function GroupFeed() {
 
   // Add the style tag to the component
   useEffect(() => {
-    // Add the scrollbar styles to the document
+    // Add the scrollbar and tab action styles to the document
     const styleElement = document.createElement("style")
-    styleElement.innerHTML = scrollbarStyles
+    styleElement.innerHTML = scrollbarStyles + tabActionStyles
     document.head.appendChild(styleElement)
 
     return () => {
@@ -321,33 +330,44 @@ export default function GroupFeed() {
 
               {/* Group Feed */}
               <div className="space-y-6 max-w-[640px] mx-auto">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-semibold">Group Activities</h2>
-                  <LaagTypeDialog onSelect={handleLaagTypeSelect} />
-                </div>
-                <LaagFeed groupId={group.id} />
+                <Tabs defaultValue="activities" className="w-full">
+                  <div className="flex items-center justify-between mb-4">
+                    <TabsList>
+                      <TabsTrigger value="activities">Activities</TabsTrigger>
+                      <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                    </TabsList>
+                    {/* Only show the LaagTypeDialog on the activities tab */}
+                    <div className="activities-tab-actions">
+                      <LaagTypeDialog onSelect={handleLaagTypeSelect} />
+                    </div>
+                  </div>
+
+                  <TabsContent value="activities" className="mt-0">
+                    <LaagFeed groupId={group.id} />
+                  </TabsContent>
+
+                  <TabsContent value="analytics" className="mt-0">
+                    <GroupAnalytics groupId={group.id} />
+                  </TabsContent>
+                </Tabs>
               </div>
             </div>
           </div>
 
           {/* Right Sub Content - Sticky */}
           <div className="h-full hidden md:block">
-            <GroupMembersCard 
+            <GroupMembersCard
               owner={group.owner}
               members={activeMembers}
               totalMembers={group.no_members}
-              className="max-w-xs" 
+              className="max-w-xs"
             />
           </div>
         </div>
       </div>
 
       {/* Mobile Members Button & Dialog */}
-      <MobileGroupMembers
-        owner={group.owner}
-        members={activeMembers}
-        totalMembers={group.no_members}
-      />
+      <MobileGroupMembers owner={group.owner} members={activeMembers} totalMembers={group.no_members} />
 
       {/* Modals */}
       <EditGroupModal
@@ -378,4 +398,3 @@ export default function GroupFeed() {
     </div>
   )
 }
-

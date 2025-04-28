@@ -277,6 +277,9 @@ export default function GroupFeed() {
   }
 
   const isOwner = user?.id === group.owner?.id
+  const isMember = group?.members?.some(
+    (member) => member.group_member === user?.id && !member.is_removed
+  ) || false
   const activeMembers = group.members?.filter((member) => !member.is_removed) || []
 
   return (
@@ -336,10 +339,12 @@ export default function GroupFeed() {
                       <TabsTrigger value="activities">Activities</TabsTrigger>
                       <TabsTrigger value="analytics">Analytics</TabsTrigger>
                     </TabsList>
-                    {/* Only show the LaagTypeDialog on the activities tab */}
-                    <div className="activities-tab-actions">
-                      <LaagTypeDialog onSelect={handleLaagTypeSelect} />
-                    </div>
+                    {/* Only show the LaagTypeDialog if user is a member */}
+                    {(isOwner || isMember) && (
+                      <div className="activities-tab-actions">
+                        <LaagTypeDialog onSelect={handleLaagTypeSelect} />
+                      </div>
+                    )}
                   </div>
 
                   <TabsContent value="activities" className="mt-0">
@@ -369,23 +374,28 @@ export default function GroupFeed() {
       {/* Mobile Members Button & Dialog */}
       <MobileGroupMembers owner={group.owner} members={activeMembers} totalMembers={group.no_members} />
 
-      {/* Modals */}
-      <EditGroupModal
-        group={group}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleEditGroup}
-      />
+      {/* Only render modals if user is owner */}
+      {isOwner && (
+        <>
+          <EditGroupModal
+            group={group}
+            isOpen={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            onSave={handleEditGroup}
+          />
 
-      <ManageMembersDialog
-        groupId={group.id}
-        isOpen={isManageMembersOpen}
-        onClose={() => setIsManageMembersOpen(false)}
-        onMembersUpdated={fetchGroup}
-        ownerId={group.owner.id}
-      />
+          <ManageMembersDialog
+            groupId={group.id}
+            isOpen={isManageMembersOpen}
+            onClose={() => setIsManageMembersOpen(false)}
+            onMembersUpdated={fetchGroup}
+            ownerId={group.owner.id}
+          />
+        </>
+      )}
 
-      {showCreateLaag && laagType && (
+      {/* Only render create laag dialog if user is a member */}
+      {(isOwner || isMember) && showCreateLaag && laagType && (
         <CreateLaagDialog
           groupId={group.id}
           onLaagCreated={handleLaagCreated}

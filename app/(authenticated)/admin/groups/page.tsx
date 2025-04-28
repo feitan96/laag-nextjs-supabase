@@ -1,9 +1,19 @@
-import React from 'react'
+"use client"
 
-const page = () => {
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { AllGroupsTable } from "@/components/groups/group-table"
+
+export default function GroupManagement() {
   return (
-    <div>page</div>
+    <div className="container py-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>All Groups</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AllGroupsTable />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
-
-export default page

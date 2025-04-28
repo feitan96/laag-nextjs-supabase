@@ -127,13 +127,13 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              {/* <DropdownMenuLabel>Actions</DropdownMenuLabel> */}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>
                 View group
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem>
-              <DropdownMenuItem>Manage members</DropdownMenuItem>
+              {/* <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem> */}
+              {/* <DropdownMenuItem>Manage members</DropdownMenuItem> */}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={() => onDelete(group.id)}>
                 Delete group
@@ -150,6 +150,164 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
         onSave={handleEditGroup}
       />
     </>
+  )
+}
+
+export function AllGroupsTable() {
+  const [groups, setGroups] = useState<Group[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState("")
+  const supabase = createClient()
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("groups")
+          .select(`
+            id,
+            group_name,
+            no_members,
+            created_at,
+            group_picture,
+            is_deleted,
+            owner:profiles!owner(id, full_name, avatar_url),
+            members:groupMembers(id, group_member, is_removed)
+          `)
+          .eq("is_deleted", false)
+
+        if (error) throw error
+
+        const transformedData = (data || []).map((group) => ({
+          ...group,
+          owner: Array.isArray(group.owner) ? group.owner[0] : group.owner,
+          members: group.members || []
+        }))
+
+        setGroups(transformedData)
+      } catch (error) {
+        console.error("Error fetching groups:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchGroups()
+  }, [supabase])
+
+  const handleDeleteGroup = async (groupId: string) => {
+    try {
+      const { error } = await supabase.from("groups").update({ is_deleted: true }).eq("id", groupId).select()
+
+      if (error) {
+        console.error("Error deleting group:", error)
+        throw error
+      }
+
+      setGroups((prevGroups) => prevGroups.filter((group) => group.id !== groupId))
+      toast.success("Group deleted successfully")
+    } catch (error) {
+      console.error("Error deleting group:", error)
+      toast.error("Failed to delete group")
+    }
+  }
+
+  // Filter groups based on search query
+  const filteredGroups = groups.filter((group) => 
+    group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-4">
+          <Skeleton className="h-9 w-[250px]" />
+          <Skeleton className="h-5 w-[100px]" />
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[300px]">Group Name</TableHead>
+              <TableHead>Members</TableHead>
+              <TableHead>Owner</TableHead>
+              <TableHead>Created</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <Skeleton className="h-6 w-[200px]" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-[80px]" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-6 rounded-full" />
+                    <Skeleton className="h-6 w-[120px]" />
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-[120px]" />
+                </TableCell>
+                <TableCell className="text-right">
+                  <Skeleton className="ml-auto h-8 w-8" />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-2">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search groups..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="h-9 w-[250px]"
+          />
+        </div>
+        <Badge variant="outline" className="text-xs">
+          {filteredGroups.length} groups
+        </Badge>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="w-[300px]">Group Name</TableHead>
+            <TableHead>Members</TableHead>
+            <TableHead>Owner</TableHead>
+            <TableHead>Created</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredGroups.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={5} className="h-24 text-center">
+                No groups found matching your search.
+              </TableCell>
+            </TableRow>
+          ) : (
+            filteredGroups.map((group) => (
+              <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </div>
   )
 }
 

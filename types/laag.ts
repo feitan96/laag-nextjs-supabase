@@ -96,6 +96,11 @@ export interface LaagImage {
     laagAttendees: LaagAttendee[]
     comments: Comment[]
     laagNotifications: LaagNotification[]
+    group?: {
+      id: string
+      group_name: string
+      group_picture?: string | null
+    }
   }
 
   export interface Member {

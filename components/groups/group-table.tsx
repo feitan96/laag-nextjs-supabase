@@ -7,7 +7,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -15,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MoreHorizontal, Search, Users } from "lucide-react"
+import { ArrowDown, ArrowUp, MoreHorizontal, Search, Users } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
@@ -25,6 +24,27 @@ import { NewGroupDialog } from "@/components/groups/create-group-dialog"
 import { EditGroupModal } from "@/components/groups/edit-group-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 export interface Group {
   id: string
@@ -83,8 +103,8 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
 
   return (
     <>
-      <TableRow key={group.id}>
-        <TableCell className="font-medium">
+      <TableRow key={group.id} className="hover:bg-muted/50 transition-colors">
+        <TableCell className="font-medium w-[35%]">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               {groupPictureUrl ? (
@@ -102,23 +122,23 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
                 <Users className="h-4 w-4" />
               )}
             </div>
-            {group.group_name}
+            <span className="truncate max-w-[200px]">{group.group_name}</span>
           </div>
         </TableCell>
-        <TableCell>
+        <TableCell className="w-[15%]">
           <Badge variant="secondary">{group.no_members} members</Badge>
         </TableCell>
-        <TableCell>
+        <TableCell className="w-[25%]">
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
               <AvatarImage src={ownerAvatarUrl || undefined} />
               <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
             </Avatar>
-            <span>{group.owner?.full_name || "Unknown"}</span>
+            <span className="truncate max-w-[150px]">{group.owner?.full_name || "Unknown"}</span>
           </div>
         </TableCell>
-        <TableCell>{formatDate(group.created_at)}</TableCell>
-        <TableCell className="text-right">
+        <TableCell className="w-[15%]">{formatDate(group.created_at)}</TableCell>
+        <TableCell className="text-right w-[10%]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">
@@ -127,17 +147,33 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* <DropdownMenuLabel>Actions</DropdownMenuLabel> */}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>
-                View group
-              </DropdownMenuItem>
-              {/* <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>Edit group</DropdownMenuItem> */}
-              {/* <DropdownMenuItem>Manage members</DropdownMenuItem> */}
+              <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>View group</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive" onClick={() => onDelete(group.id)}>
-                Delete group
-              </DropdownMenuItem>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                    Delete group
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to delete this group? This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDelete(group.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </DropdownMenuContent>
           </DropdownMenu>
         </TableCell>
@@ -157,6 +193,10 @@ export function AllGroupsTable() {
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
+  const [memberFilter, setMemberFilter] = useState<string>("all")
   const supabase = createClient()
 
   useEffect(() => {
@@ -181,7 +221,7 @@ export function AllGroupsTable() {
         const transformedData = (data || []).map((group) => ({
           ...group,
           owner: Array.isArray(group.owner) ? group.owner[0] : group.owner,
-          members: group.members || []
+          members: group.members || [],
         }))
 
         setGroups(transformedData)
@@ -212,10 +252,25 @@ export function AllGroupsTable() {
     }
   }
 
-  // Filter groups based on search query
-  const filteredGroups = groups.filter((group) => 
-    group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  // Filter groups based on search query and member count
+  const filteredGroups = groups
+    .filter((group) => {
+      const matchesSearch = group.group_name.toLowerCase().includes(searchQuery.toLowerCase())
+
+      if (memberFilter === "all") return matchesSearch
+      if (memberFilter === "small") return matchesSearch && group.no_members <= 10
+      if (memberFilter === "medium") return matchesSearch && group.no_members > 10 && group.no_members <= 50
+      if (memberFilter === "large") return matchesSearch && group.no_members > 50
+
+      return matchesSearch
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime()
+      const dateB = new Date(b.created_at).getTime()
+      return sortDirection === "desc" ? dateB - dateA : dateA - dateB
+    })
+
+  const paginatedGroups = filteredGroups.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   if (loading) {
     return (
@@ -224,51 +279,53 @@ export function AllGroupsTable() {
           <Skeleton className="h-9 w-[250px]" />
           <Skeleton className="h-5 w-[100px]" />
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Group Name</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <Skeleton className="h-6 w-[200px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-6 w-[80px]" />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-6 w-6 rounded-full" />
-                    <Skeleton className="h-6 w-[120px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-6 w-[120px]" />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Skeleton className="ml-auto h-8 w-8" />
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[35%]">Group Name</TableHead>
+                <TableHead className="w-[15%]">Members</TableHead>
+                <TableHead className="w-[25%]">Owner</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="text-right w-[10%]">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-6 w-[200px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-[80px]" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-6 w-[120px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-[120px]" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="ml-auto h-8 w-8" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 w-full">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
@@ -278,35 +335,143 @@ export function AllGroupsTable() {
             className="h-9 w-[250px]"
           />
         </div>
-        <Badge variant="outline" className="text-xs">
-          {filteredGroups.length} groups
-        </Badge>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Size:</span>
+            <Select value={memberFilter} onValueChange={setMemberFilter}>
+              <SelectTrigger className="h-8 w-[130px]">
+                <SelectValue placeholder="All Sizes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sizes</SelectItem>
+                <SelectItem value="small">Small (≤10)</SelectItem>
+                <SelectItem value="medium">Medium (11-50)</SelectItem>
+                <SelectItem value="large">Large (>50)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Show:</span>
+            <Select
+              value={itemsPerPage.toString()}
+              onValueChange={(value) => {
+                setItemsPerPage(Number.parseInt(value))
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="h-8 w-[70px]">
+                <SelectValue placeholder="10" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="20">20</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">per page</span>
+          </div>
+        </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[300px]">Group Name</TableHead>
-            <TableHead>Members</TableHead>
-            <TableHead>Owner</TableHead>
-            <TableHead>Created</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredGroups.length === 0 ? (
+      <div className="overflow-x-auto">
+        <Table className="w-full min-w-[800px]">
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center">
-                No groups found matching your search.
-              </TableCell>
+              <TableHead className="w-[35%]">Group Name</TableHead>
+              <TableHead className="w-[15%]">Members</TableHead>
+              <TableHead className="w-[25%]">Owner</TableHead>
+              <TableHead
+                className="w-[15%] cursor-pointer"
+                onClick={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
+              >
+                <div className="flex items-center gap-1">
+                  Created
+                  {sortDirection === "desc" ? (
+                    <ArrowDown className="h-3 w-3 ml-1" />
+                  ) : (
+                    <ArrowUp className="h-3 w-3 ml-1" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="text-right w-[10%]">Actions</TableHead>
             </TableRow>
-          ) : (
-            filteredGroups.map((group) => (
-              <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />
-            ))
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {paginatedGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5} className="h-24 text-center">
+                  No groups found matching your search.
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {filteredGroups.length > 0 && (
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 px-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {Math.min(filteredGroups.length, (currentPage - 1) * itemsPerPage + 1)} to{" "}
+            {Math.min(filteredGroups.length, currentPage * itemsPerPage)} of {filteredGroups.length} groups
+          </div>
+
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                />
+              </PaginationItem>
+
+              {Array.from({ length: Math.min(5, Math.ceil(filteredGroups.length / itemsPerPage)) }, (_, i) => {
+                const pageNumber = i + 1
+                return (
+                  <PaginationItem key={pageNumber}>
+                    <PaginationLink onClick={() => setCurrentPage(pageNumber)} isActive={currentPage === pageNumber}>
+                      {pageNumber}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              })}
+
+              {Math.ceil(filteredGroups.length / itemsPerPage) > 5 && (
+                <>
+                  <PaginationItem>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(Math.ceil(filteredGroups.length / itemsPerPage))}
+                      isActive={currentPage === Math.ceil(filteredGroups.length / itemsPerPage)}
+                    >
+                      {Math.ceil(filteredGroups.length / itemsPerPage)}
+                    </PaginationLink>
+                  </PaginationItem>
+                </>
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(Math.ceil(filteredGroups.length / itemsPerPage), p + 1))
+                  }
+                  className={
+                    currentPage === Math.ceil(filteredGroups.length / itemsPerPage)
+                      ? "pointer-events-none opacity-50"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      )}
     </div>
   )
 }
@@ -341,7 +506,7 @@ export function GroupTable() {
         const transformedData = (data || []).map((group) => ({
           ...group,
           owner: Array.isArray(group.owner) ? group.owner[0] : group.owner,
-          members: group.members || []
+          members: group.members || [],
         }))
 
         setGroups(transformedData)
@@ -377,10 +542,10 @@ export function GroupTable() {
 
   // Filter groups based on user's membership
   const userGroups = filteredGroups.filter(
-    (group) => group.owner?.id === user?.id || group.members?.some((member) => member.group_member === user?.id)
+    (group) => group.owner?.id === user?.id || group.members?.some((member) => member.group_member === user?.id),
   )
   const availableGroups = filteredGroups.filter(
-    (group) => group.owner?.id !== user?.id && !group.members?.some((member) => member.group_member === user?.id)
+    (group) => group.owner?.id !== user?.id && !group.members?.some((member) => member.group_member === user?.id),
   )
 
   if (loading) {
@@ -390,44 +555,46 @@ export function GroupTable() {
           <Skeleton className="h-9 w-[250px]" />
           <Skeleton className="h-5 w-[100px]" />
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Group Name</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {Array.from({ length: 5 }).map((_, index) => (
-              <TableRow key={index}>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-8 w-8 rounded-full" />
-                    <Skeleton className="h-6 w-[200px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-6 w-[80px]" />
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-6 w-6 rounded-full" />
-                    <Skeleton className="h-6 w-[120px]" />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-6 w-[120px]" />
-                </TableCell>
-                <TableCell className="text-right">
-                  <Skeleton className="ml-auto h-8 w-8" />
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[35%]">Group Name</TableHead>
+                <TableHead className="w-[15%]">Members</TableHead>
+                <TableHead className="w-[25%]">Owner</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="text-right w-[10%]">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                      <Skeleton className="h-6 w-[200px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-[80px]" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-6 w-6 rounded-full" />
+                      <Skeleton className="h-6 w-[120px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-6 w-[120px]" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="ml-auto h-8 w-8" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     )
   }
@@ -456,28 +623,30 @@ export function GroupTable() {
             {userGroups.length} groups
           </Badge>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Group Name</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {userGroups.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  You are not a member of any groups.
-                </TableCell>
+                <TableHead className="w-[35%]">Group Name</TableHead>
+                <TableHead className="w-[15%]">Members</TableHead>
+                <TableHead className="w-[25%]">Owner</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="text-right w-[10%]">Actions</TableHead>
               </TableRow>
-            ) : (
-              userGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {userGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    You are not a member of any groups.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                userGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* Available Groups */}
@@ -488,28 +657,30 @@ export function GroupTable() {
             {availableGroups.length} groups
           </Badge>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Group Name</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {availableGroups.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No available groups found.
-                </TableCell>
+                <TableHead className="w-[35%]">Group Name</TableHead>
+                <TableHead className="w-[15%]">Members</TableHead>
+                <TableHead className="w-[25%]">Owner</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="text-right w-[10%]">Actions</TableHead>
               </TableRow>
-            ) : (
-              availableGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {availableGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No available groups found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                availableGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
 
       {/* All Groups */}
@@ -520,30 +691,31 @@ export function GroupTable() {
             {filteredGroups.length} groups
           </Badge>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[300px]">Group Name</TableHead>
-              <TableHead>Members</TableHead>
-              <TableHead>Owner</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredGroups.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table className="w-full min-w-[800px]">
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No groups found matching your search.
-                </TableCell>
+                <TableHead className="w-[35%]">Group Name</TableHead>
+                <TableHead className="w-[15%]">Members</TableHead>
+                <TableHead className="w-[25%]">Owner</TableHead>
+                <TableHead className="w-[15%]">Created</TableHead>
+                <TableHead className="text-right w-[10%]">Actions</TableHead>
               </TableRow>
-            ) : (
-              filteredGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredGroups.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center">
+                    No groups found matching your search.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   )
 }
-

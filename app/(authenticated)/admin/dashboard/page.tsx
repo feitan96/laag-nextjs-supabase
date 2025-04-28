@@ -8,8 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Users, Group, Map } from 'lucide-react'
 import { toast } from "sonner"
+import { ResponsiveBar } from '@nivo/bar'
 
 type TimePeriod = 'day' | 'week' | 'month' | 'year'
+
+interface GroupLaagStats {
+  group_name: string
+  planned_count: number
+  completed_count: number
+  cancelled_count: number
+}
 
 interface Stats {
   users: number
@@ -19,6 +27,7 @@ interface Stats {
     Completed: number
     Cancelled: number
   }
+  groupLaags: GroupLaagStats[]
 }
 
 const Dashboard = () => {
@@ -31,7 +40,8 @@ const Dashboard = () => {
       Planned: 0,
       Completed: 0,
       Cancelled: 0
-    }
+    },
+    groupLaags: []
   })
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -80,14 +90,23 @@ const Dashboard = () => {
           })
         }
 
+        // Fetch group laag stats
+        const { data: groupLaagData, error: groupLaagError } = await supabase
+          .rpc('get_group_laag_stats', { time_period: timePeriod })
+        if (groupLaagError) {
+          console.error('Group laag stats error:', groupLaagError)
+          throw groupLaagError
+        }
+
         setStats({
           users: Number(userData) || 0,
           groups: Number(groupData) || 0,
-          laags: laagCounts
+          laags: laagCounts,
+          groupLaags: groupLaagData || []
         })
       } catch (error) {
         console.error('Error fetching stats:', error)
-        toast.error('Failed to fetch dashboard statistics. Please ensure the database functions are properly set up.')
+        toast.error('Failed to fetch dashboard statistics.')
       } finally {
         setLoading(false)
       }
@@ -96,22 +115,8 @@ const Dashboard = () => {
     fetchStats()
   }, [timePeriod, supabase])
 
-  if (roleLoading) {
-    return (
-      <div className="container py-6">
-        <div className="h-[400px] flex items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-        </div>
-      </div>
-    )
-  }
-
-  if (role !== 'admin') {
-    redirect('/user/feed')
-  }
-
   return (
-    <div className="container py-6">
+    <><div className="container py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
@@ -170,7 +175,77 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div><div className="mt-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Laags by Group</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="h-[400px] flex items-center justify-center">
+                <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              </div>
+            ) : (
+              <div className="h-[400px]">
+                <ResponsiveBar
+                  data={stats.groupLaags}
+                  keys={['planned_count', 'completed_count', 'cancelled_count']}
+                  indexBy="group_name"
+                  margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
+                  padding={0.3}
+                  valueScale={{ type: 'linear' }}
+                  indexScale={{ type: 'band', round: true }}
+                  colors={['#3b82f6', '#22c55e', '#ef4444']}
+                  borderColor={{
+                    from: 'color',
+                    modifiers: [['darker', 1.6]]
+                  }}
+                  axisTop={null}
+                  axisRight={null}
+                  axisBottom={{
+                    tickSize: 5,
+                    tickPadding: 5,
+                    tickRotation: -45,
+                    legend: 'Groups',
+                    legendPosition: 'middle',
+                    legendOffset: 40
+                  }}
+                  axisLeft={{
+                    tickSize: 5,
+                    tickPadding: 5,
+                    tickRotation: 0,
+                    legend: 'Count',
+                    legendPosition: 'middle',
+                    legendOffset: -40
+                  }}
+                  labelSkipWidth={12}
+                  labelSkipHeight={12}
+                  legends={[
+                    {
+                      dataFrom: 'keys',
+                      anchor: 'bottom-right',
+                      direction: 'column',
+                      justify: false,
+                      translateX: 120,
+                      translateY: 0,
+                      itemsSpacing: 2,
+                      itemWidth: 100,
+                      itemHeight: 20,
+                      itemDirection: 'left-to-right',
+                      itemOpacity: 0.85,
+                      symbolSize: 20,
+                      data: [
+                        { id: 'planned_count', label: 'Planned' },
+                        { id: 'completed_count', label: 'Completed' },
+                        { id: 'cancelled_count', label: 'Cancelled' }
+                      ]
+                    }
+                  ]} />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div></>
   )
 }
 

@@ -2,26 +2,14 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/utils/supabase/client"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ArrowDown, ArrowUp, MoreHorizontal, Search, Users } from "lucide-react"
+import { ArrowDown, ArrowUp, Search, Trash2, Users } from "lucide-react"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { useAvatar } from "@/hooks/useAvatar"
 import Image from "next/image"
 import { toast } from "sonner"
-import { useAuth } from "@/app/context/auth-context"
-import { NewGroupDialog } from "@/components/groups/create-group-dialog"
-import { EditGroupModal } from "@/components/groups/edit-group-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useRouter } from "next/navigation"
 import {
@@ -73,38 +61,18 @@ const formatDate = (date: string) => {
   })
 }
 
-function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: string) => void }) {
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
-  const groupPictureUrl = useGroupPicture(group.group_picture || null)
-  const ownerAvatarUrl = useAvatar(group.owner?.avatar_url || null)
+function GroupsTable({ groups, onDelete }: { groups: Group[]; onDelete: (id: string) => void }) {
   const router = useRouter()
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
 
-  const supabase = createClient()
+  // Create a component for the group row to properly use hooks
+  const GroupRow = ({ group }: { group: Group }) => {
+    const groupPictureUrl = useGroupPicture(group.group_picture || null)
+    const ownerAvatarUrl = useAvatar(group.owner?.avatar_url || null)
 
-  const handleEditGroup = async (groupId: string, newName: string) => {
-    try {
-      console.log("Attempting to update group with ID:", groupId)
-      console.log("New group name:", newName)
-
-      const { data, error } = await supabase.from("groups").update({ group_name: newName }).eq("id", groupId).select()
-
-      if (error) {
-        console.error("Error updating group:", error)
-        throw error
-      }
-
-      console.log("Group updated successfully. Updated data:", data)
-      toast.success("Group updated successfully")
-    } catch (error) {
-      console.error("Error updating group:", error)
-      toast.error("Failed to update group")
-    }
-  }
-
-  return (
-    <>
-      <TableRow key={group.id} className="hover:bg-muted/50 transition-colors">
-        <TableCell className="font-medium w-[35%]">
+    return (
+      <div className="grid grid-cols-5 gap-4 p-4 items-center hover:bg-muted/50 transition-colors">
+        <div>
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
               {groupPictureUrl ? (
@@ -122,70 +90,80 @@ function GroupRow({ group, onDelete }: { group: Group; onDelete: (groupId: strin
                 <Users className="h-4 w-4" />
               )}
             </div>
-            <span className="truncate max-w-[200px]">{group.group_name}</span>
+            <span className="font-medium truncate max-w-[200px]">{group.group_name}</span>
           </div>
-        </TableCell>
-        <TableCell className="w-[15%]">
+        </div>
+        <div>
           <Badge variant="secondary">{group.no_members} members</Badge>
-        </TableCell>
-        <TableCell className="w-[25%]">
+        </div>
+        <div>
           <div className="flex items-center gap-2">
             <Avatar className="h-6 w-6">
               <AvatarImage src={ownerAvatarUrl || undefined} />
               <AvatarFallback className="text-xs">{group.owner?.full_name?.charAt(0) || "?"}</AvatarFallback>
             </Avatar>
-            <span className="truncate max-w-[150px]">{group.owner?.full_name || "Unknown"}</span>
+            <span className="text-sm truncate max-w-[150px]">{group.owner?.full_name || "Unknown"}</span>
           </div>
-        </TableCell>
-        <TableCell className="w-[15%]">{formatDate(group.created_at)}</TableCell>
-        <TableCell className="text-right w-[10%]">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">Open menu</span>
+        </div>
+        <div className="text-sm text-muted-foreground">{formatDate(group.created_at)}</div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" size="sm" onClick={() => router.push(`/user/groups/${group.id}`)}>
+            View
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push(`/user/groups/${group.id}`)}>View group</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
-                    Delete group
-                  </DropdownMenuItem>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Group</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Are you sure you want to delete this group? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => onDelete(group.id)}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    >
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </TableCell>
-      </TableRow>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Group</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete this group? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(group.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    )
+  }
 
-      <EditGroupModal
-        group={group}
-        isOpen={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        onSave={handleEditGroup}
-      />
-    </>
+  return (
+    <div className="rounded-md border">
+      <div className="p-4 bg-muted/50">
+        <div className="grid grid-cols-5 gap-4 font-medium text-sm">
+          <div>Group Name</div>
+          <div>Members</div>
+          <div>Owner</div>
+          <div
+            className="flex items-center gap-1 cursor-pointer"
+            onClick={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
+          >
+            Created
+            {sortDirection === "desc" ? <ArrowDown className="h-3 w-3 ml-1" /> : <ArrowUp className="h-3 w-3 ml-1" />}
+          </div>
+          <div className="text-right">Actions</div>
+        </div>
+      </div>
+      <div className="divide-y">
+        {groups.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">No groups found matching your criteria</div>
+        ) : (
+          groups.map((group) => <GroupRow key={group.id} group={group} />)
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -194,7 +172,7 @@ export function AllGroupsTable() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(7)
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
   const [memberFilter, setMemberFilter] = useState<string>("all")
   const supabase = createClient()
@@ -270,54 +248,60 @@ export function AllGroupsTable() {
       return sortDirection === "desc" ? dateB - dateA : dateA - dateB
     })
 
-  const paginatedGroups = filteredGroups.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-
   if (loading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between p-4">
-          <Skeleton className="h-9 w-[250px]" />
-          <Skeleton className="h-5 w-[100px]" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+          <div className="h-9 w-[250px] bg-muted rounded-md" />
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-10 bg-muted rounded" />
+              <div className="h-8 w-[130px] bg-muted rounded" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-10 bg-muted rounded" />
+              <div className="h-8 w-[70px] bg-muted rounded" />
+              <div className="h-5 w-16 bg-muted rounded" />
+            </div>
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <Table className="w-full min-w-[800px]">
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[35%]">Group Name</TableHead>
-                <TableHead className="w-[15%]">Members</TableHead>
-                <TableHead className="w-[25%]">Owner</TableHead>
-                <TableHead className="w-[15%]">Created</TableHead>
-                <TableHead className="text-right w-[10%]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {Array.from({ length: 5 }).map((_, index) => (
-                <TableRow key={index}>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                      <Skeleton className="h-6 w-[200px]" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-[80px]" />
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Skeleton className="h-6 w-6 rounded-full" />
-                      <Skeleton className="h-6 w-[120px]" />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Skeleton className="h-6 w-[120px]" />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Skeleton className="ml-auto h-8 w-8" />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+
+        <div className="rounded-md border">
+          <div className="p-4 bg-muted/50">
+            <div className="grid grid-cols-5 gap-4 font-medium text-sm">
+              <div>Group Name</div>
+              <div>Members</div>
+              <div>Owner</div>
+              <div>Created</div>
+              <div className="text-right">Actions</div>
+            </div>
+          </div>
+          <div className="divide-y">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <div key={index} className="grid grid-cols-5 gap-4 p-4 items-center">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-muted" />
+                    <div className="h-5 w-32 bg-muted rounded" />
+                  </div>
+                </div>
+                <div>
+                  <div className="h-6 w-24 bg-muted rounded-full" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-6 w-6 rounded-full bg-muted" />
+                    <div className="h-5 w-24 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="h-5 w-24 bg-muted rounded" />
+                <div className="flex justify-end gap-2">
+                  <div className="h-8 w-16 bg-muted rounded" />
+                  <div className="h-8 w-8 bg-muted rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     )
@@ -325,7 +309,7 @@ export function AllGroupsTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4 w-full">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
         <div className="flex items-center gap-2">
           <Search className="h-4 w-4 text-muted-foreground" />
           <Input
@@ -353,7 +337,7 @@ export function AllGroupsTable() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Show:</span>
+            <span className="text-sm text-muted-foreground">Show</span>
             <Select
               value={itemsPerPage.toString()}
               onValueChange={(value) => {
@@ -362,10 +346,10 @@ export function AllGroupsTable() {
               }}
             >
               <SelectTrigger className="h-8 w-[70px]">
-                <SelectValue placeholder="10" />
+                <SelectValue placeholder="7" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="7">7</SelectItem>
                 <SelectItem value="10">10</SelectItem>
                 <SelectItem value="20">20</SelectItem>
                 <SelectItem value="50">50</SelectItem>
@@ -376,42 +360,10 @@ export function AllGroupsTable() {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <Table className="w-full min-w-[800px]">
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-[35%]">Group Name</TableHead>
-              <TableHead className="w-[15%]">Members</TableHead>
-              <TableHead className="w-[25%]">Owner</TableHead>
-              <TableHead
-                className="w-[15%] cursor-pointer"
-                onClick={() => setSortDirection(sortDirection === "desc" ? "asc" : "desc")}
-              >
-                <div className="flex items-center gap-1">
-                  Created
-                  {sortDirection === "desc" ? (
-                    <ArrowDown className="h-3 w-3 ml-1" />
-                  ) : (
-                    <ArrowUp className="h-3 w-3 ml-1" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="text-right w-[10%]">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {paginatedGroups.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="h-24 text-center">
-                  No groups found matching your search.
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedGroups.map((group) => <GroupRow key={group.id} group={group} onDelete={handleDeleteGroup} />)
-            )}
-          </TableBody>
-        </Table>
-      </div>
+      <GroupsTable
+        groups={filteredGroups.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)}
+        onDelete={handleDeleteGroup}
+      />
 
       {filteredGroups.length > 0 && (
         <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-4 px-4">
@@ -475,6 +427,7 @@ export function AllGroupsTable() {
     </div>
   )
 }
+
 
 export function GroupTable() {
   const [groups, setGroups] = useState<Group[]>([])

@@ -78,8 +78,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1">
-        <div className="h-full w-full p-8">
-          {children}
+        <div className="container p-8">
+          <div className="space-y-6">
+            {children}
+          </div>
         </div>
       </div>
     </div>

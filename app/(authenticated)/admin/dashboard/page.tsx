@@ -32,7 +32,7 @@ interface Stats {
 }
 
 const Dashboard = () => {
-  useRole()
+  const { role, loading: roleLoading } = useRole()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("month")
   const [stats, setStats] = useState<Stats>({
     users: 0,
@@ -126,8 +126,21 @@ const Dashboard = () => {
     cancelled: group.cancelled_count,
   }))
 
+  // Add role check at the beginning of the component
+  if (roleLoading) {
+    return (
+      <div className="flex h-[calc(100vh-56px)] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
+  }
+
+  if (role !== "admin") {
+    return null // or redirect to another page
+  }
+
   return (
-    <div className="container py-0">
+    <div className="container py-8">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
         <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
@@ -157,7 +170,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-4">
             {loading ? (
-              <div className="h-8 w-16 animate-pulse rounded-md bg-secondary/20"></div>
+              <div className="h-[52px] w-[80px] animate-pulse rounded-md bg-secondary/20"></div>
             ) : (
               <div className="text-3xl font-bold text-foreground">{stats.users}</div>
             )}
@@ -177,7 +190,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="pt-4">
             {loading ? (
-              <div className="h-8 w-16 animate-pulse rounded-md bg-secondary/20"></div>
+              <div className="h-[52px] w-[80px] animate-pulse rounded-md bg-secondary/20"></div>
             ) : (
               <div className="text-3xl font-bold text-foreground">{stats.groups}</div>
             )}

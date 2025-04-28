@@ -15,7 +15,7 @@ type TimePeriod = "day" | "week" | "month" | "year"
 
 interface GroupLaagStats {
   group_name: string
-  planned_count: number
+  planning_count: number
   completed_count: number
   cancelled_count: number
 }
@@ -32,7 +32,7 @@ interface Stats {
 }
 
 const Dashboard = () => {
-  const { role, loading: roleLoading } = useRole()
+  useRole()
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("month")
   const [stats, setStats] = useState<Stats>({
     users: 0,
@@ -84,7 +84,7 @@ const Dashboard = () => {
 
         if (Array.isArray(laagData)) {
           laagData.forEach((item: { status: keyof typeof laagCounts; count: number }) => {
-            if (item.status === "Planned") {
+            if (item.status === "Planning") {
               laagCounts["Planning"] = Number(item.count)
             } else {
               laagCounts[item.status] = Number(item.count)
@@ -121,13 +121,13 @@ const Dashboard = () => {
   // Transform data for shadcn chart
   const chartData = stats.groupLaags.map((group) => ({
     name: group.group_name,
-    planning: group.planned_count,
+    planning: group.planning_count,
     completed: group.completed_count,
     cancelled: group.cancelled_count,
   }))
 
   return (
-    <div className="container py-8">
+    <div className="container py-0">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
         <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>

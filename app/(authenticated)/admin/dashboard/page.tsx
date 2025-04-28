@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Users, Group, Map } from 'lucide-react'
 import { toast } from "sonner"
 import { ResponsiveBar } from '@nivo/bar'
+import { NotificationHistory } from '@/components/admin/notification-history'
 
 type TimePeriod = 'day' | 'week' | 'month' | 'year'
 
@@ -175,7 +176,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-    </div><div className="mt-8">
+    </div><div className="mt-8 grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Laags by Group</CardTitle>
@@ -245,6 +246,7 @@ const Dashboard = () => {
             )}
           </CardContent>
         </Card>
+        <NotificationHistory />
       </div></>
   )
 }

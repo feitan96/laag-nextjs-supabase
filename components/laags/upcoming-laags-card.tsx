@@ -8,7 +8,7 @@ import { createClient } from "@/utils/supabase/client"
 import { useGroupPicture } from "@/hooks/useGroupPicture"
 import { format } from "date-fns"
 import Image from "next/image"
-import { Users, Calendar, MapPin, Clock } from "lucide-react"
+import { Users, Calendar, Clock } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
@@ -84,24 +84,32 @@ export function UpcomingLaagsCard() {
   const supabase = createClient()
 
   useEffect(() => {
-    async function fetchUpcomingLaags() {
+    const fetchUpcomingLaags = async () => {
       try {
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser()
+        if (userError) throw userError
+
+        // Fetch laags where the user is an attendee and not removed
         const { data, error } = await supabase
           .from("laags")
           .select(`
-            id,
-            what,
-            type,
-            when_start,
-            when_end,
-            group:groups(
+            *,
+            group:groups!group_id(
               id,
               group_name,
               group_picture
+            ),
+            laagAttendees!inner(
+              id,
+              attendee_id,
+              is_removed
             )
           `)
           .eq("status", "Planning")
           .eq("is_deleted", false)
+          .eq("laagAttendees.attendee_id", user?.id ?? '')
+          .eq("laagAttendees.is_removed", false)
           .order("when_start", { ascending: true })
 
         if (error) throw error

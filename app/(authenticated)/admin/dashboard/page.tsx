@@ -1,17 +1,17 @@
-'use client'
+"use client"
 
-import { useRole } from '@/hooks/useRole'
-import { redirect } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Users, Group, Map } from 'lucide-react'
+import { useRole } from "@/hooks/useRole"
+import { useEffect, useState } from "react"
+import { createClient } from "@/utils/supabase/client"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Users, Group, Map, BarChart3 } from "lucide-react"
 import { toast } from "sonner"
-import { ResponsiveBar } from '@nivo/bar'
-import { NotificationHistory } from '@/components/admin/notification-history'
+import { NotificationHistory } from "@/components/admin/notification-history"
+import { Bar, BarChart, XAxis, YAxis } from "recharts"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 
-type TimePeriod = 'day' | 'week' | 'month' | 'year'
+type TimePeriod = "day" | "week" | "month" | "year"
 
 interface GroupLaagStats {
   group_name: string
@@ -24,7 +24,7 @@ interface Stats {
   users: number
   groups: number
   laags: {
-    Planned: number
+    Planning: number
     Completed: number
     Cancelled: number
   }
@@ -33,16 +33,16 @@ interface Stats {
 
 const Dashboard = () => {
   const { role, loading: roleLoading } = useRole()
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>('month')
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("month")
   const [stats, setStats] = useState<Stats>({
     users: 0,
     groups: 0,
     laags: {
-      Planned: 0,
+      Planning: 0,
       Completed: 0,
-      Cancelled: 0
+      Cancelled: 0,
     },
-    groupLaags: []
+    groupLaags: [],
   })
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -51,51 +51,53 @@ const Dashboard = () => {
     const fetchStats = async () => {
       try {
         setLoading(true)
-        
+
         // Fetch user counts
-        const { data: userData, error: userError } = await supabase
-          .rpc('get_user_counts', { time_period: timePeriod })
+        const { data: userData, error: userError } = await supabase.rpc("get_user_counts", { time_period: timePeriod })
         if (userError) {
-          console.error('User count error:', userError)
+          console.error("User count error:", userError)
           throw userError
         }
 
         // Fetch group counts
-        const { data: groupData, error: groupError } = await supabase
-          .rpc('get_group_counts', { time_period: timePeriod })
+        const { data: groupData, error: groupError } = await supabase.rpc("get_group_counts", {
+          time_period: timePeriod,
+        })
         if (groupError) {
-          console.error('Group count error:', groupError)
+          console.error("Group count error:", groupError)
           throw groupError
         }
 
         // Fetch laag counts
-        const { data: laagData, error: laagError } = await supabase
-          .rpc('get_laag_counts', { time_period: timePeriod })
+        const { data: laagData, error: laagError } = await supabase.rpc("get_laag_counts", { time_period: timePeriod })
         if (laagError) {
-          console.error('Laag count error:', laagError)
+          console.error("Laag count error:", laagError)
           throw laagError
         }
 
         // Transform laag data into the required format
         const laagCounts = {
-          Planned: 0,
+          Planning: 0,
           Completed: 0,
-          Cancelled: 0
+          Cancelled: 0,
         }
-        
+
         if (Array.isArray(laagData)) {
           laagData.forEach((item: { status: keyof typeof laagCounts; count: number }) => {
-            if (item.status in laagCounts) {
+            if (item.status === "Planned") {
+              laagCounts["Planning"] = Number(item.count)
+            } else {
               laagCounts[item.status] = Number(item.count)
             }
           })
         }
 
         // Fetch group laag stats
-        const { data: groupLaagData, error: groupLaagError } = await supabase
-          .rpc('get_group_laag_stats', { time_period: timePeriod })
+        const { data: groupLaagData, error: groupLaagError } = await supabase.rpc("get_group_laag_stats", {
+          time_period: timePeriod,
+        })
         if (groupLaagError) {
-          console.error('Group laag stats error:', groupLaagError)
+          console.error("Group laag stats error:", groupLaagError)
           throw groupLaagError
         }
 
@@ -103,11 +105,11 @@ const Dashboard = () => {
           users: Number(userData) || 0,
           groups: Number(groupData) || 0,
           laags: laagCounts,
-          groupLaags: groupLaagData || []
+          groupLaags: groupLaagData || [],
         })
       } catch (error) {
-        console.error('Error fetching stats:', error)
-        toast.error('Failed to fetch dashboard statistics.')
+        console.error("Error fetching stats:", error)
+        toast.error("Failed to fetch dashboard statistics.")
       } finally {
         setLoading(false)
       }
@@ -116,12 +118,20 @@ const Dashboard = () => {
     fetchStats()
   }, [timePeriod, supabase])
 
+  // Transform data for shadcn chart
+  const chartData = stats.groupLaags.map((group) => ({
+    name: group.group_name,
+    planning: group.planned_count,
+    completed: group.completed_count,
+    cancelled: group.cancelled_count,
+  }))
+
   return (
-    <><div className="container py-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+    <div className="container py-8">
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-primary">Admin Dashboard</h1>
         <Select value={timePeriod} onValueChange={(value: TimePeriod) => setTimePeriod(value)}>
-          <SelectTrigger className="w-[180px]">
+          <SelectTrigger className="w-[180px] border-secondary/20 bg-secondary/10">
             <SelectValue placeholder="Select time period" />
           </SelectTrigger>
           <SelectContent>
@@ -133,53 +143,98 @@ const Dashboard = () => {
         </Select>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-3">
         {/* Users Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Users</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+        <Card className="overflow-hidden border-secondary/20 bg-card shadow-md">
+          <CardHeader className="bg-secondary/10 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">New Users</CardTitle>
+              <div className="rounded-full bg-background/50 p-2 shadow-sm">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <CardDescription>Total new registrations</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loading ? '...' : stats.users}</div>
+          <CardContent className="pt-4">
+            {loading ? (
+              <div className="h-8 w-16 animate-pulse rounded-md bg-secondary/20"></div>
+            ) : (
+              <div className="text-3xl font-bold text-foreground">{stats.users}</div>
+            )}
           </CardContent>
         </Card>
 
         {/* Groups Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Groups</CardTitle>
-            <Group className="h-4 w-4 text-muted-foreground" />
+        <Card className="overflow-hidden border-secondary/20 bg-card shadow-md">
+          <CardHeader className="bg-secondary/10 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">New Groups</CardTitle>
+              <div className="rounded-full bg-background/50 p-2 shadow-sm">
+                <Group className="h-4 w-4 text-primary" />
+              </div>
+            </div>
+            <CardDescription>Total new groups created</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{loading ? '...' : stats.groups}</div>
+          <CardContent className="pt-4">
+            {loading ? (
+              <div className="h-8 w-16 animate-pulse rounded-md bg-secondary/20"></div>
+            ) : (
+              <div className="text-3xl font-bold text-foreground">{stats.groups}</div>
+            )}
           </CardContent>
         </Card>
 
         {/* Laags Card */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Laags</CardTitle>
-            <Map className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="text-2xl font-bold">
-                {loading ? '...' : Object.values(stats.laags).reduce((a, b) => a + b, 0)}
-              </div>
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div>Planned: {loading ? '...' : stats.laags.Planned}</div>
-                <div>Completed: {loading ? '...' : stats.laags.Completed}</div>
-                <div>Cancelled: {loading ? '...' : stats.laags.Cancelled}</div>
+        <Card className="overflow-hidden border-secondary/20 bg-card shadow-md">
+          <CardHeader className="bg-secondary/10 pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">New Laags</CardTitle>
+              <div className="rounded-full bg-background/50 p-2 shadow-sm">
+                <Map className="h-4 w-4 text-primary" />
               </div>
             </div>
+            <CardDescription>Total new activities</CardDescription>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {loading ? (
+              <div className="space-y-2">
+                <div className="h-8 w-16 animate-pulse rounded-md bg-secondary/20"></div>
+                <div className="space-y-1">
+                  <div className="h-3 w-24 animate-pulse rounded-md bg-secondary/20"></div>
+                  <div className="h-3 w-24 animate-pulse rounded-md bg-secondary/20"></div>
+                  <div className="h-3 w-24 animate-pulse rounded-md bg-secondary/20"></div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="text-3xl font-bold text-foreground">
+                  {Object.values(stats.laags).reduce((a, b) => a + b, 0)}
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="rounded-md bg-chart-1/10 px-2 py-1">
+                    <span className="font-medium text-chart-1">Planning:</span> {stats.laags.Planning}
+                  </div>
+                  <div className="rounded-md bg-chart-2/10 px-2 py-1">
+                    <span className="font-medium text-chart-2">Completed:</span> {stats.laags.Completed}
+                  </div>
+                  <div className="rounded-md bg-destructive/10 px-2 py-1">
+                    <span className="font-medium text-destructive">Cancelled:</span> {stats.laags.Cancelled}
+                  </div>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
-    </div><div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Laags by Group</CardTitle>
+
+      <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <Card className="overflow-hidden border-secondary/20 bg-card shadow-md">
+          <CardHeader className="bg-secondary/10 pb-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-primary" />
+              <CardTitle>Laags by Group</CardTitle>
+            </div>
+            <CardDescription>Distribution of activities across groups</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -188,66 +243,57 @@ const Dashboard = () => {
               </div>
             ) : (
               <div className="h-[400px]">
-                <ResponsiveBar
-                  data={stats.groupLaags}
-                  keys={['planned_count', 'completed_count', 'cancelled_count']}
-                  indexBy="group_name"
-                  margin={{ top: 50, right: 130, bottom: 50, left: 60 }}
-                  padding={0.3}
-                  valueScale={{ type: 'linear' }}
-                  indexScale={{ type: 'band', round: true }}
-                  colors={['#3b82f6', '#22c55e', '#ef4444']}
-                  borderColor={{
-                    from: 'color',
-                    modifiers: [['darker', 1.6]]
+                <ChartContainer
+                  config={{
+                    planning: {
+                      label: "Planning",
+                      color: "hsl(var(--chart-1))",
+                    },
+                    completed: {
+                      label: "Completed",
+                      color: "hsl(var(--chart-2))",
+                    },
+                    cancelled: {
+                      label: "Cancelled",
+                      color: "hsl(var(--destructive))",
+                    },
                   }}
-                  axisTop={null}
-                  axisRight={null}
-                  axisBottom={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: -45,
-                    legend: 'Groups',
-                    legendPosition: 'middle',
-                    legendOffset: 40
-                  }}
-                  axisLeft={{
-                    tickSize: 5,
-                    tickPadding: 5,
-                    tickRotation: 0,
-                    legend: 'Count',
-                    legendPosition: 'middle',
-                    legendOffset: -40
-                  }}
-                  labelSkipWidth={12}
-                  labelSkipHeight={12}
-                  legends={[
-                    {
-                      dataFrom: 'keys',
-                      anchor: 'bottom-right',
-                      direction: 'column',
-                      justify: false,
-                      translateX: 120,
-                      translateY: 0,
-                      itemsSpacing: 2,
-                      itemWidth: 100,
-                      itemHeight: 20,
-                      itemDirection: 'left-to-right',
-                      itemOpacity: 0.85,
-                      symbolSize: 20,
-                      data: [
-                        { id: 'planned_count', label: 'Planned' },
-                        { id: 'completed_count', label: 'Completed' },
-                        { id: 'cancelled_count', label: 'Cancelled' }
-                      ]
-                    }
-                  ]} />
+                  className="h-full w-full"
+                >
+                  <BarChart
+                    accessibilityLayer
+                    data={chartData}
+                    margin={{ top: 30, right: 30, bottom: 60, left: 40 }}
+                    layout="vertical"
+                  >
+                    <XAxis
+                      type="number"
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                      tickLine={{ stroke: "hsl(var(--border))" }}
+                      axisLine={{ stroke: "hsl(var(--border))" }}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      width={100}
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={10}
+                      tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    />
+                    <Bar dataKey="planning" stackId="stack" fill="var(--color-planning)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="completed" stackId="stack" fill="var(--color-completed)" radius={[0, 0, 0, 0]} />
+                    <Bar dataKey="cancelled" stackId="stack" fill="var(--color-cancelled)" radius={[0, 0, 0, 0]} />
+                    <ChartTooltip content={<ChartTooltipContent className="bg-background/95 backdrop-blur-sm" />} />
+                  </BarChart>
+                </ChartContainer>
               </div>
             )}
           </CardContent>
         </Card>
         <NotificationHistory />
-      </div></>
+      </div>
+    </div>
   )
 }
 

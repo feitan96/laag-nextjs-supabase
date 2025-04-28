@@ -40,7 +40,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Sidebar */}
-      <div className="flex w-64 flex-col border-r bg-background">
+      <div className="fixed inset-y-0 left-0 flex w-64 flex-col border-r bg-background">
         {/* Logo */}
         <div className="flex h-14 items-center border-b px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
@@ -77,7 +77,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1">
+      <div className="ml-64 flex-1">
         <div className="container p-8">
           <div className="space-y-6">
             {children}

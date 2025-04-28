@@ -159,7 +159,7 @@ export default function LaagManagement() {
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [itemsPerPage, setItemsPerPage] = useState(8)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
 
@@ -222,21 +222,82 @@ export default function LaagManagement() {
 
   if (loading) {
     return (
-      <div className="container py-6">
+      <div className="container pt-0 pb-0">
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">Laag Management</h1>
+            <div className="relative w-64 h-10 bg-muted rounded-md" />
           </div>
-          <div className="h-[400px] flex items-center justify-center">
-            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-          </div>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="h-6 w-24 bg-muted rounded" />
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-14 bg-muted rounded" />
+                    <div className="h-8 w-[130px] bg-muted rounded" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-5 w-10 bg-muted rounded" />
+                    <div className="h-8 w-[70px] bg-muted rounded" />
+                    <div className="h-5 w-16 bg-muted rounded" />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <div className="p-4 bg-muted/50">
+                  <div className="grid grid-cols-7 gap-4 font-medium text-sm">
+                    <div className="col-span-2">Details</div>
+                    <div>Status</div>
+                    <div>Group</div>
+                    <div>Organizer</div>
+                    <div>Created</div>
+                    <div className="text-right">Actions</div>
+                  </div>
+                </div>
+                <div className="divide-y">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <div key={index} className="grid grid-cols-7 gap-4 p-4 items-center">
+                      <div className="col-span-2">
+                        <div className="h-5 w-40 bg-muted rounded mb-1" />
+                        <div className="h-4 w-32 bg-muted rounded" />
+                      </div>
+                      <div>
+                        <div className="h-6 w-20 bg-muted rounded-full" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-muted" />
+                          <div className="h-4 w-20 bg-muted rounded" />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <div className="h-6 w-6 rounded-full bg-muted" />
+                          <div className="h-4 w-20 bg-muted rounded" />
+                        </div>
+                      </div>
+                      <div className="h-4 w-24 bg-muted rounded" />
+                      <div className="flex justify-end gap-2">
+                        <div className="h-8 w-16 bg-muted rounded" />
+                        <div className="h-8 w-8 bg-muted rounded" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="container pt-0 pb-0">
+    <div className="container pt-4 pb-6">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Laag Management</h1>
@@ -280,12 +341,11 @@ export default function LaagManagement() {
                     }}
                   >
                     <SelectTrigger className="h-8 w-[70px]">
-                      <SelectValue placeholder="7" />
+                      <SelectValue placeholder="8" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="7">7</SelectItem>
-                      <SelectItem value="10">10</SelectItem>
-                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="15">15</SelectItem>
                       <SelectItem value="50">50</SelectItem>
                     </SelectContent>
                   </Select>

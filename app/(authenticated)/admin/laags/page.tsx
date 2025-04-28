@@ -159,7 +159,7 @@ export default function LaagManagement() {
   const [searchQuery, setSearchQuery] = useState("")
   const supabase = createClient()
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage, setItemsPerPage] = useState(8)
+  const [itemsPerPage, setItemsPerPage] = useState(6)
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
 
@@ -341,10 +341,10 @@ export default function LaagManagement() {
                     }}
                   >
                     <SelectTrigger className="h-8 w-[70px]">
-                      <SelectValue placeholder="8" />
+                      <SelectValue placeholder="6" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="8">8</SelectItem>
+                      <SelectItem value="6">6</SelectItem>
                       <SelectItem value="15">15</SelectItem>
                       <SelectItem value="50">50</SelectItem>
                     </SelectContent>

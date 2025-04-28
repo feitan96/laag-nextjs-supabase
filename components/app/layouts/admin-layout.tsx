@@ -1,18 +1,15 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
 import {
   LayoutDashboard,
   Users,
   Map,
   Group,
-  LogOut
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { NavAdmin } from "../sidebar/nav-admin"
-import { use } from "react"
 
 const sidebarNavItems = [
   {
@@ -26,14 +23,14 @@ const sidebarNavItems = [
     icon: Users,
   },
   {
-    title: "Laags",
-    href: "/admin/laags",
-    icon: Map,
-  },
-  {
     title: "Groups",
     href: "/admin/groups",
     icon: Group,
+  },
+  {
+    title: "Laags",
+    href: "/admin/laags",
+    icon: Map,
   },
 ]
 
@@ -47,7 +44,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         {/* Logo */}
         <div className="flex h-14 items-center border-b px-6">
           <Link href="/admin" className="flex items-center gap-2 font-semibold">
-            <img src="/logo.png" alt="Logo" className="h-6 w-6" />
+            <img src="/laag-dark-v1.png" alt="Logo" className="h-6 w-6" />
             <span>Laag Admin</span>
           </Link>
         </div>

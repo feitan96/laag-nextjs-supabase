@@ -236,7 +236,7 @@ export default function LaagManagement() {
   }
 
   return (
-    <div className="container pt-4 pb-6">
+    <div className="container pt-0 pb-0">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Laag Management</h1>
@@ -280,10 +280,10 @@ export default function LaagManagement() {
                     }}
                   >
                     <SelectTrigger className="h-8 w-[70px]">
-                      <SelectValue placeholder="5" />
+                      <SelectValue placeholder="7" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="7">7</SelectItem>
                       <SelectItem value="10">10</SelectItem>
                       <SelectItem value="20">20</SelectItem>
                       <SelectItem value="50">50</SelectItem>

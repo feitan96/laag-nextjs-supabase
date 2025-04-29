@@ -120,10 +120,11 @@ export function ManageMembersDialog({ groupId, isOpen, onClose, onMembersUpdated
 
   const fetchAvailableProfiles = async () => {
     try {
-      // Get all profiles
+      // Get all non-admin profiles
       const { data: allProfiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, full_name, avatar_url, role")
+        .neq('role', 'admin')
 
       if (profilesError) throw profilesError
 

@@ -108,11 +108,12 @@ export function NewGroupDialog({ className }: { className?: string }) {
 
         setCurrentUser(currentUserData)
 
-        // Get all other profiles
+        // Get all other non-admin profiles
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
-          .select("id, full_name, avatar_url")
+          .select("id, full_name, avatar_url, role")
           .neq("id", user.id) // Exclude current user
+          .neq("role", "admin") // Exclude admin users
 
         if (profilesError) {
           throw profilesError

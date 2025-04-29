@@ -32,20 +32,25 @@ export function AuthForm() {
   }
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
-        <CardDescription>Sign in to your account</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <OAuthButton 
-          provider="google" 
-          onClick={handleGoogleSignIn} 
-          className="w-full" 
-          disabled={isPending}
-        />
-      </CardContent>
-    </Card>
+    <div className="flex min-h-screen items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <div className="flex justify-center mb-4">
+            <img src="/laag-dark-v1.png" alt="Laag Logo" className="h-24 w-24" />
+          </div>
+          <CardTitle className="text-2xl font-bold">Welcome</CardTitle>
+          <CardDescription>Sign in to your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <OAuthButton 
+            provider="google" 
+            onClick={handleGoogleSignIn} 
+            className="w-full" 
+            disabled={isPending}
+          />
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
